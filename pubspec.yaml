@@ -1,0 +1,25 @@
+name: go_campus
+description: "A new Flutter project."
+publish_to: 'none'
+version: 0.1.0
+
+environment:
+  sdk: ^3.10.7
+
+dependencies:
+  flutter:
+    sdk: flutter
+  provider: ^6.1.1        # State Management
+  hive: ^2.2.3            # Local Database
+  hive_flutter: ^1.1.0    # Hive helper
+  geolocator: ^14.0.2     # GPS tracking
+  flutter_local_notifications: ^21.0.0 # Alerts
+  intl: ^0.20.2           # For formatting time/dates
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true

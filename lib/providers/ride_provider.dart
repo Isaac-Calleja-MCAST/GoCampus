@@ -23,7 +23,31 @@ class RideProvider with ChangeNotifier {
   }
 
   void joinOrCreatePool(String email, String locality, String dest, DateTime time) {
-    // Logic as discussed before
+    try {
+      // 1. Check if a pool ALREADY exists for this exact town, campus, and time
+      final existingPool = _activePools.firstWhere(
+        (p) => p.originLocality == locality && 
+               p.destination == dest && 
+               p.lectureTime.hour == time.hour && // Match by hour
+               p.lectureTime.minute == time.minute &&
+               !p.isFull
+      );
+      
+      // 2. If found, add student to the list
+      if (!existingPool.studentEmails.contains(email)) {
+        existingPool.studentEmails.add(email);
+      }
+      
+    } catch (e) {
+      // 3. If no matching pool exists, CREATE a new one
+      _activePools.add(CarpoolPool(
+        id: DateTime.now().toString(),
+        originLocality: locality,
+        destination: dest,
+        lectureTime: time,
+        studentEmails: [email],
+      ));
+    }
     notifyListeners();
   }
 }

@@ -10,10 +10,17 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Hive.initFlutter();
   
+  // 1. Create the provider first
+  final userProvider = UserProvider();
+  
+  // 2. WAIT for the session to load BEFORE running the app
+  await userProvider.loadSession();
+  
   runApp(
     MultiProvider(
       providers: [
-        ChangeNotifierProvider(create: (_) => UserProvider()..loadSession()),
+        // 3. Use .value because we already initialized it above
+        ChangeNotifierProvider.value(value: userProvider),
         ChangeNotifierProvider(create: (_) => RideProvider()),
       ],
       child: const GoCampusApp(),

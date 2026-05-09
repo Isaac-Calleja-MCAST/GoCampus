@@ -1,4 +1,5 @@
 enum Region { malta, gozo }
+enum PoolStatus { recruiting, collectingAddresses, awaitingPayment, booked }
 
 class CarpoolPool {
   final String id;
@@ -6,10 +7,12 @@ class CarpoolPool {
   final String destination;
   final DateTime lectureTime;
   final List<String> studentEmails;
-  final Region region; // NEW
-  final int maxCapacity;
+  final Map<String, String> studentAddresses; 
+  final String leadStudentEmail;
+  final Region region;
+  final PoolStatus status;
+  final double? fetchedPrice;
 
-  static const double baseRideCost = 12.00;
   static const double platformFee = 0.50;
 
   CarpoolPool({
@@ -18,11 +21,26 @@ class CarpoolPool {
     required this.destination,
     required this.lectureTime,
     required this.studentEmails,
-    required this.region, // NEW
-    this.maxCapacity = 4,
+    this.studentAddresses = const {},
+    required this.leadStudentEmail,
+    required this.region,
+    this.status = PoolStatus.recruiting,
+    this.fetchedPrice,
   });
 
-  double get pricePerStudent => (baseRideCost / studentEmails.length) + platformFee;
-  double get savings => baseRideCost - pricePerStudent;
-  bool get isFull => studentEmails.length >= maxCapacity;
+  // LOGIC HELPERS
+  
+  // FIX FOR ERROR: Added this getter back
+  bool get isFull => studentEmails.length >= 4;
+
+  double get pricePerStudent {
+    double total = fetchedPrice ?? 12.00; 
+    return (total / studentEmails.length) + platformFee;
+  }
+
+  // DYNAMIC SAVINGS: Calculated based on the real cost of the car
+  double get savings {
+    double total = fetchedPrice ?? 12.00;
+    return total - pricePerStudent;
+  }
 }

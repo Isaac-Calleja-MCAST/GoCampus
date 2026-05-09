@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import '../providers/ride_provider.dart';
-import '../providers/user_provider.dart'; 
+import '../providers/user_provider.dart';
 import '../models/carpool_pool.dart';
 import 'find_pool_screen.dart';
 import 'pool_detail_screen.dart';
@@ -39,14 +39,14 @@ class HomeScreen extends StatelessWidget {
             child: SegmentedButton<Region>(
               segments: const [
                 ButtonSegment(
-                  value: Region.malta, 
-                  label: Text('Malta'), 
-                  icon: Icon(Icons.map)
+                  value: Region.malta,
+                  label: Text('Malta'),
+                  icon: Text("🇲🇹"),
                 ),
                 ButtonSegment(
-                  value: Region.gozo, 
-                  label: Text('Gozo'), 
-                  icon: Icon(Icons.directions_boat)
+                  value: Region.gozo,
+                  label: Text('Gozo'),
+                  icon: Text("⛴️"),
                 ),
               ],
               selected: {userProvider.selectedRegion},
@@ -104,7 +104,8 @@ class HomeScreen extends StatelessWidget {
                         onTap: () {
                           Navigator.of(context).push(
                             MaterialPageRoute(
-                              builder: (context) => PoolDetailScreen(pool: pool),
+                              builder: (context) =>
+                                  PoolDetailScreen(pool: pool),
                             ),
                           );
                         },
@@ -112,9 +113,12 @@ class HomeScreen extends StatelessWidget {
                           backgroundColor: indigoBlue.withValues(alpha: 0.1),
                           child: const Icon(Icons.group, color: indigoBlue),
                         ),
-                        title: Text("${pool.originLocality} ➔ ${pool.destination}"),
+                        title: Text(
+                          "${pool.originLocality} ➔ ${pool.destination}",
+                        ),
                         subtitle: Text(
-                          "Lecture: ${DateFormat('jm').format(pool.lectureTime)}",
+                          "Lecture: ${DateFormat('E, MMM d – h:mm a').format(pool.lectureTime)}",
+                          style: const TextStyle(fontSize: 13),
                         ),
                         trailing: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
@@ -122,8 +126,8 @@ class HomeScreen extends StatelessWidget {
                             Text(
                               "€${pool.pricePerStudent.toStringAsFixed(2)}",
                               style: const TextStyle(
-                                color: islandGreen, 
-                                fontWeight: FontWeight.bold
+                                color: islandGreen,
+                                fontWeight: FontWeight.bold,
                               ),
                             ),
                             Container(
@@ -135,8 +139,8 @@ class HomeScreen extends StatelessWidget {
                               child: Text(
                                 "Save €${pool.savings.toStringAsFixed(2)}",
                                 style: const TextStyle(
-                                  fontSize: 9, 
-                                  color: islandGreen
+                                  fontSize: 9,
+                                  color: islandGreen,
                                 ),
                               ),
                             ),
@@ -152,9 +156,9 @@ class HomeScreen extends StatelessWidget {
         ],
       ),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => Navigator.of(context).push(
-          MaterialPageRoute(builder: (context) => const FindPoolScreen()),
-        ),
+        onPressed: () => Navigator.of(
+          context,
+        ).push(MaterialPageRoute(builder: (context) => const FindPoolScreen())),
         label: const Text("Find Pool", style: TextStyle(color: Colors.white)),
         icon: const Icon(Icons.search, color: Colors.white),
         backgroundColor: indigoBlue,

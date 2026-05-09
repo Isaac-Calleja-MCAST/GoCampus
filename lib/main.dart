@@ -1,19 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:hive_flutter/hive_flutter.dart';
+import 'providers/user_provider.dart';
 import 'providers/ride_provider.dart';
 import 'screens/login_screen.dart';
+import 'screens/home_screen.dart'; 
 
 void main() async {
-  // Ensure Flutter is initialized for Hive
   WidgetsFlutterBinding.ensureInitialized();
-  
-  // Initialize Hive for local storage
   await Hive.initFlutter();
   
   runApp(
-    ChangeNotifierProvider(
-      create: (context) => RideProvider(),
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => UserProvider()..loadSession()),
+        ChangeNotifierProvider(create: (_) => RideProvider()),
+      ],
       child: const GoCampusApp(),
     ),
   );
@@ -24,19 +26,17 @@ class GoCampusApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final userProvider = Provider.of<UserProvider>(context);
+
     return MaterialApp(
       title: 'GoCampus',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         useMaterial3: true,
-        // Using your brand colors from the docs
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF3F51B5), // Indigo Blue
-          primary: const Color(0xFF3F51B5),
-          secondary: const Color(0xFF2E7D32), // Island Green
-        ),
+        colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF3F51B5)),
       ),
-      home: const LoginScreen(), // We will build this next
+      // Logic: If logged in, go Home. If not, go Login.
+      home: userProvider.isLoggedIn ? const HomeScreen() : const LoginScreen(),
     );
   }
 }

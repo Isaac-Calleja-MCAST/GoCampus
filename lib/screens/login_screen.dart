@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'home_screen.dart';
+import 'package:provider/provider.dart';
+import '../providers/user_provider.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -97,23 +99,17 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  void _handleLogin(String domain) {
-    // In the piece-by-piece approach, we show a success message
-    // before building the actual cloud connection.
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text("Authenticating with $domain..."),
-        backgroundColor: islandGreen,
-      ),
+  void _handleLogin(String domain) async {
+  // Logic: In real life, the Google/MS popup happens here.
+  // We simulate it by saving the session.
+  final email = "student@$domain"; 
+  
+  await Provider.of<UserProvider>(context, listen: false).login(email);
+  
+  if (mounted) {
+    Navigator.of(context).pushReplacement(
+      MaterialPageRoute(builder: (context) => const HomeScreen()),
     );
-
-    // Mock navigation to Home
-    Future.delayed(const Duration(seconds: 1), () {
-      if (mounted) {
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (context) => const HomeScreen()),
-        );
-      }
-    });
   }
+}
 }

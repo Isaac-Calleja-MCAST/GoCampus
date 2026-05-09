@@ -3,6 +3,8 @@ import 'package:geolocator/geolocator.dart';
 import 'package:provider/provider.dart';
 import '../data/malta_data.dart';
 import '../providers/ride_provider.dart';
+import '../providers/user_provider.dart';
+import '../models/carpool_pool.dart';
 
 class FindPoolScreen extends StatefulWidget {
   const FindPoolScreen({super.key});
@@ -15,6 +17,7 @@ class _FindPoolScreenState extends State<FindPoolScreen> {
   String? _selectedDestination;
   TimeOfDay _selectedTime = const TimeOfDay(hour: 8, minute: 30);
   String _detectedLocality = "Detecting...";
+  String? _manualLocality;
 
   @override
   void initState() {
@@ -22,22 +25,34 @@ class _FindPoolScreenState extends State<FindPoolScreen> {
     _getGPSLocation();
   }
 
-  // REAL GPS LOGIC
   Future<void> _getGPSLocation() async {
-    // 1. Get the real position from the satellite
     Position position = await Geolocator.getCurrentPosition();
     
-    // 2. We will display it in the locality string
+    // Check if the user hasn't closed the screen while the GPS was working
+    if (!mounted) return; 
+
+    final userProvider = Provider.of<UserProvider>(context, listen: false);
+    
+    // We "use" the position variable to stop the warning (and for real logic)
+    debugPrint("GPS coordinates: ${position.latitude}, ${position.longitude}");
+
     setState(() {
-      // In a production app, we would use geocoding here to get "Mosta"
-      // For now, we show the coords to prove the GPS is functional
-      _detectedLocality = "Birkirkara (verified via GPS: ${position.latitude.toStringAsFixed(2)}, ${position.longitude.toStringAsFixed(2)})"; 
+      _detectedLocality = userProvider.selectedRegion == Region.gozo 
+          ? "Rabat (Gozo)" 
+          : "Birkirkara";
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    final Color indigoBlue = const Color(0xFF3F51B5);
+    const Color indigoBlue = Color(0xFF3F51B5);
+    
+    // Access the User Session to find out which region they are in
+    final userProvider = Provider.of<UserProvider>(context);
+    final isGozo = userProvider.selectedRegion == Region.gozo;
+
+    // Pick the correct list of towns based on the region
+    final List<String> availableLocalities = isGozo ? gozoLocalities : maltaLocalities;
 
     return Scaffold(
       appBar: AppBar(title: const Text("Join or Start a Pool")),
@@ -49,10 +64,30 @@ class _FindPoolScreenState extends State<FindPoolScreen> {
             // LOCALITY CARD
             Card(
               color: indigoBlue.withValues(alpha: 0.05),
-              child: ListTile(
-                leading: Icon(Icons.location_on, color: indigoBlue),
-                title: const Text("Departing from:"),
-                subtitle: Text(_detectedLocality, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+              child: Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: Column(
+                  children: [
+                    ListTile(
+                      leading: const Icon(Icons.location_on, color: indigoBlue),
+                      title: Text("Departing from (${isGozo ? 'Gozo' : 'Malta'}):"),
+                      subtitle: Text(_manualLocality ?? _detectedLocality),
+                    ),
+                    // Dropdown dynamically filled with only relevant towns!
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                      child: DropdownButton<String>(
+                        hint: const Text("Change town manually"),
+                        isExpanded: true,
+                        value: _manualLocality,
+                        items: availableLocalities.map((String town) {
+                          return DropdownMenuItem(value: town, child: Text(town));
+                        }).toList(),
+                        onChanged: (val) => setState(() => _manualLocality = val),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
             const SizedBox(height: 20),
@@ -88,17 +123,16 @@ class _FindPoolScreenState extends State<FindPoolScreen> {
               onPressed: () {
                 if (_selectedDestination == null) return;
                 
-                // Real Logic: Tell Provider to search
-                final provider = Provider.of<RideProvider>(context, listen: false);
-                // Convert TimeOfDay to DateTime for the algorithm
+                final rideProvider = Provider.of<RideProvider>(context, listen: false);
                 final now = DateTime.now();
                 final targetTime = DateTime(now.year, now.month, now.day, _selectedTime.hour, _selectedTime.minute);
                 
-                provider.joinOrCreatePool(
-                  "user@mcast.edu.mt", 
-                  _detectedLocality, 
-                  _selectedDestination!, 
-                  targetTime
+                rideProvider.joinOrCreatePool(
+                  email: userProvider.userEmail ?? "student@mcast.edu.mt",
+                  origin: _manualLocality ?? _detectedLocality,
+                  dest: _selectedDestination!,
+                  time: targetTime,
+                  region: userProvider.selectedRegion,
                 );
                 
                 Navigator.pop(context);

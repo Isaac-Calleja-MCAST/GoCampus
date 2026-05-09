@@ -1,51 +1,61 @@
 import 'package:flutter/material.dart';
-// import 'package:hive_flutter/hive_flutter.dart';
-import '../models/carpool_pool.dart'; // Import the correct model
+import '../models/carpool_pool.dart';
 
 class RideProvider with ChangeNotifier {
-  // Use the new model name here
-  final List<CarpoolPool> _activePools = [
+  final List<CarpoolPool> _allPools = [
+    // Mock Malta Pool
     CarpoolPool(
       id: 'p1',
       originLocality: 'Birkirkara',
       destination: 'MCAST Paola',
       lectureTime: DateTime.now().add(const Duration(hours: 1)),
       studentEmails: ['student1@mcast.edu.mt', 'student2@mcast.edu.mt'],
+      region: Region.malta,
+    ),
+    // Mock Gozo Pool
+    CarpoolPool(
+      id: 'p2',
+      originLocality: 'Nadur',
+      destination: 'MCAST Gozo',
+      lectureTime: DateTime.now().add(const Duration(hours: 2)),
+      studentEmails: ['student3@mcast.edu.mt'],
+      region: Region.gozo,
     ),
   ];
 
-  List<CarpoolPool> get activePools => [..._activePools];
+  // Retrieve all pools; we will filter them in the UI based on the User Session
+  List<CarpoolPool> get allPools => [..._allPools];
 
-  // This fixes the 'loadRides' error in home_screen.dart
   Future<void> loadRides() async {
-    // Hive logic will go here later
     notifyListeners();
   }
 
-  void joinOrCreatePool(String email, String locality, String dest, DateTime time) {
+  void joinOrCreatePool({
+    required String email,
+    required String origin,
+    required String dest,
+    required DateTime time,
+    required Region region,
+  }) {
     try {
-      // 1. Check if a pool ALREADY exists for this exact town, campus, and time
-      final existingPool = _activePools.firstWhere(
-        (p) => p.originLocality == locality && 
-               p.destination == dest && 
-               p.lectureTime.hour == time.hour && // Match by hour
-               p.lectureTime.minute == time.minute &&
-               !p.isFull
-      );
-      
-      // 2. If found, add student to the list
+      final existingPool = _allPools.firstWhere((p) =>
+          p.originLocality == origin &&
+          p.destination == dest &&
+          p.region == region &&
+          p.lectureTime.difference(time).inMinutes.abs() <= 10 &&
+          !p.isFull);
+
       if (!existingPool.studentEmails.contains(email)) {
         existingPool.studentEmails.add(email);
       }
-      
     } catch (e) {
-      // 3. If no matching pool exists, CREATE a new one
-      _activePools.add(CarpoolPool(
+      _allPools.add(CarpoolPool(
         id: DateTime.now().toString(),
-        originLocality: locality,
+        originLocality: origin,
         destination: dest,
         lectureTime: time,
         studentEmails: [email],
+        region: region,
       ));
     }
     notifyListeners();

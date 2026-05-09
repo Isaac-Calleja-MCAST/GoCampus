@@ -9,12 +9,13 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  provider: ^6.1.1        # State Management
+  provider: ^6.1.5        # State Management
   hive: ^2.2.3            # Local Database
   hive_flutter: ^1.1.0    # Hive helper
   geolocator: ^14.0.2     # GPS tracking
   flutter_local_notifications: ^21.0.0 # Alerts
   intl: ^0.20.2           # For formatting time/dates
+  url_launcher: ^6.3.2    # Open Ride-Hailing App
 
 dev_dependencies:
   flutter_test:

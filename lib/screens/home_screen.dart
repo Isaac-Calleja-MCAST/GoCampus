@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import '../providers/ride_provider.dart';
 import 'find_pool_screen.dart';
+import 'pool_detail_screen.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -24,7 +25,7 @@ class HomeScreen extends StatelessWidget {
             return const Center(child: Text("No pools found."));
           }
 
-          return ListView.builder(
+         return ListView.builder(
             padding: const EdgeInsets.all(12),
             itemCount: rideProvider.activePools.length,
             itemBuilder: (context, index) {
@@ -34,8 +35,14 @@ class HomeScreen extends StatelessWidget {
                 elevation: 4,
                 margin: const EdgeInsets.symmetric(vertical: 8),
                 child: ListTile(
+                  onTap: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (context) => PoolDetailScreen(pool: pool),
+                      ),
+                    );
+                  },
                   leading: CircleAvatar(
-                    // Fixed deprecated withOpacity
                     backgroundColor: indigoBlue.withValues(alpha: 0.1),
                     child: const Icon(Icons.group, color: indigoBlue),
                   ),

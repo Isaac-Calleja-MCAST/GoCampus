@@ -44,8 +44,8 @@ class UserProvider with ChangeNotifier {
   Future<void> logout() async {
     _userEmail = null;
     _isLoggedIn = false;
+    notifyListeners(); 
     var box = await Hive.openBox('userBox');
     await box.clear();
-    notifyListeners();
   }
 }

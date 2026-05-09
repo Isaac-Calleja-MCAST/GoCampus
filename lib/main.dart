@@ -26,8 +26,6 @@ class GoCampusApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final userProvider = Provider.of<UserProvider>(context);
-
     return MaterialApp(
       title: 'GoCampus',
       debugShowCheckedModeBanner: false,
@@ -35,8 +33,16 @@ class GoCampusApp extends StatelessWidget {
         useMaterial3: true,
         colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF3F51B5)),
       ),
-      // Logic: If logged in, go Home. If not, go Login.
-      home: userProvider.isLoggedIn ? const HomeScreen() : const LoginScreen(),
+      // THE GATE: This builder runs EVERY time UserProvider changes
+      home: Consumer<UserProvider>(
+        builder: (context, userProvider, child) {
+          if (userProvider.isLoggedIn) {
+            return const HomeScreen();
+          } else {
+            return const LoginScreen();
+          }
+        },
+      ),
     );
   }
 }

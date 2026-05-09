@@ -100,16 +100,7 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   void _handleLogin(String domain) async {
-  // Logic: In real life, the Google/MS popup happens here.
-  // We simulate it by saving the session.
-  final email = "student@$domain"; 
-  
-  await Provider.of<UserProvider>(context, listen: false).login(email);
-  
-  if (mounted) {
-    Navigator.of(context).pushReplacement(
-      MaterialPageRoute(builder: (context) => const HomeScreen()),
-    );
+    final email = "student@$domain"; 
+    await Provider.of<UserProvider>(context, listen: false).login(email);
   }
-}
 }

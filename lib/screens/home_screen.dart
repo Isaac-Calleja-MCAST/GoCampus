@@ -68,9 +68,25 @@ class HomeScreen extends StatelessWidget {
 
                 if (filteredPools.isEmpty) {
                   return Center(
-                    child: Text(
-                      "No pools found in ${userProvider.selectedRegion == Region.malta ? 'Malta' : 'Gozo'}.\nTry searching for one!",
-                      textAlign: TextAlign.center,
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.car_crash_outlined,
+                          size: 80,
+                          color: Colors.grey[300],
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          "No pools found in ${userProvider.selectedRegion == Region.malta ? 'Malta' : 'Gozo'}.",
+                          style: const TextStyle(
+                            color: Colors.grey,
+                            fontSize: 16,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                        const Text("Be the first to start one!"),
+                      ],
                     ),
                   );
                 }

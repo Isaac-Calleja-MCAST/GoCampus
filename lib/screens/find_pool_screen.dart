@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:provider/provider.dart';
+import 'package:intl/intl.dart';
 import '../data/malta_data.dart';
+import '../data/route_logic.dart'; // Needed for Locality enum and .name extension
 import '../providers/ride_provider.dart';
 import '../providers/user_provider.dart';
 import '../models/carpool_pool.dart';
-import 'package:intl/intl.dart';
 
 class FindPoolScreen extends StatefulWidget {
   const FindPoolScreen({super.key});
@@ -15,11 +16,14 @@ class FindPoolScreen extends StatefulWidget {
 }
 
 class _FindPoolScreenState extends State<FindPoolScreen> {
+  // 1. STATE VARIABLES (Using Enums instead of Strings)
   DateTime _selectedDate = DateTime.now().add(const Duration(days: 1));
-  String? _selectedDestination;
+  String? _selectedDestination; // Keys from campusMap
   TimeOfDay _selectedTime = const TimeOfDay(hour: 8, minute: 30);
-  String _detectedLocality = "Detecting...";
-  String? _manualLocality;
+  
+  // These are now Locality Enums
+  Locality _detectedLocality = Locality.msida; 
+  Locality? _manualLocality;
 
   @override
   void initState() {
@@ -28,40 +32,51 @@ class _FindPoolScreenState extends State<FindPoolScreen> {
   }
 
   Future<void> _getGPSLocation() async {
-    Position position = await Geolocator.getCurrentPosition();
-    
-    // Check if the user hasn't closed the screen while the GPS was working
-    if (!mounted) return; 
+    // Attempt to get GPS coordinates
+    try {
+      Position position = await Geolocator.getCurrentPosition();
+      debugPrint("GPS coordinates: ${position.latitude}, ${position.longitude}");
+    } catch (e) {
+      debugPrint("GPS Error: $e");
+    }
+
+    if (!mounted) return;
 
     final userProvider = Provider.of<UserProvider>(context, listen: false);
-    
-    // We "use" the position variable to stop the warning (and for real logic)
-    debugPrint("GPS coordinates: ${position.latitude}, ${position.longitude}");
 
     setState(() {
-      _detectedLocality = userProvider.selectedRegion == Region.gozo 
-          ? "Rabat (Gozo)" 
-          : "Birkirkara";
+      // Logic: Set a logical default town based on their active region
+      _detectedLocality = userProvider.selectedRegion == Region.gozo
+          ? Locality.victoria
+          : Locality.msida;
     });
   }
 
   @override
   Widget build(BuildContext context) {
     const Color indigoBlue = Color(0xFF3F51B5);
-    
-    // 1. Access the User Session
+
+    // 2. Access User Session & Filter Localities
     final userProvider = Provider.of<UserProvider>(context);
     final isGozo = userProvider.selectedRegion == Region.gozo;
-    final List<String> availableLocalities = isGozo ? gozoLocalities : maltaLocalities;
+    
+    // availableLocalities is now a List<Locality> from malta_data.dart
+    final List<Locality> availableLocalities = isGozo
+        ? gozoLocalities
+        : maltaLocalities;
 
     return Scaffold(
-      appBar: AppBar(title: const Text("Join or Start a Pool")),
+      appBar: AppBar(
+        title: const Text("Join or Start a Pool"),
+        backgroundColor: indigoBlue,
+        foregroundColor: Colors.white,
+      ),
       body: Padding(
         padding: const EdgeInsets.all(20.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // --- SECTION 1: LOCALITY (GPS or Manual) ---
+            // --- SECTION 1: LOCALITY (Enum-based Dropdown) ---
             Card(
               color: indigoBlue.withValues(alpha: 0.05),
               child: Padding(
@@ -70,19 +85,25 @@ class _FindPoolScreenState extends State<FindPoolScreen> {
                   children: [
                     ListTile(
                       leading: const Icon(Icons.location_on, color: indigoBlue),
-                      title: Text("Departing from (${isGozo ? 'Gozo' : 'Malta'}):"),
-                      subtitle: Text(_manualLocality ?? _detectedLocality),
+                      title: Text(
+                        "Departing from (${isGozo ? 'Gozo' : 'Malta'}):",
+                      ),
+                      subtitle: Text((_manualLocality ?? _detectedLocality).name), // Uses extension
                     ),
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                      child: DropdownButton<String>(
+                      child: DropdownButton<Locality>(
                         hint: const Text("Change town manually"),
                         isExpanded: true,
                         value: _manualLocality,
-                        items: availableLocalities.map((String town) {
-                          return DropdownMenuItem(value: town, child: Text(town));
+                        items: availableLocalities.map((Locality town) {
+                          return DropdownMenuItem<Locality>(
+                            value: town,
+                            child: Text(town.name), // Uses the .name extension
+                          );
                         }).toList(),
-                        onChanged: (val) => setState(() => _manualLocality = val),
+                        onChanged: (val) =>
+                            setState(() => _manualLocality = val),
                       ),
                     ),
                   ],
@@ -91,20 +112,29 @@ class _FindPoolScreenState extends State<FindPoolScreen> {
             ),
             const SizedBox(height: 20),
 
-            // --- SECTION 2: DESTINATION ---
-            const Text("Where are you going?", style: TextStyle(fontWeight: FontWeight.bold)),
+            // --- SECTION 2: DESTINATION (Mapped to Enum via campusMap) ---
+            const Text(
+              "Where are you going?",
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
             DropdownButtonFormField<String>(
-              initialValue: _selectedDestination, // Using 'value' for selection tracking
+              value: _selectedDestination,
               items: campusDestinations.map((String value) {
-                return DropdownMenuItem<String>(value: value, child: Text(value));
+                return DropdownMenuItem<String>(
+                  value: value,
+                  child: Text(value),
+                );
               }).toList(),
               onChanged: (val) => setState(() => _selectedDestination = val),
               decoration: const InputDecoration(border: OutlineInputBorder()),
             ),
             const SizedBox(height: 20),
 
-            // --- SECTION 3: DATE PICKER (NEW) ---
-            const Text("Departure Date:", style: TextStyle(fontWeight: FontWeight.bold)),
+            // --- SECTION 3: DATE PICKER ---
+            const Text(
+              "Departure Date:",
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
             ListTile(
               tileColor: Colors.grey[100],
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
@@ -114,8 +144,8 @@ class _FindPoolScreenState extends State<FindPoolScreen> {
                 final DateTime? picked = await showDatePicker(
                   context: context,
                   initialDate: _selectedDate,
-                  firstDate: DateTime.now(), // Cannot pick past dates
-                  lastDate: DateTime.now().add(const Duration(days: 7)), // Max 1 week booking
+                  firstDate: DateTime.now(),
+                  lastDate: DateTime.now().add(const Duration(days: 7)),
                 );
                 if (picked != null) setState(() => _selectedDate = picked);
               },
@@ -123,21 +153,27 @@ class _FindPoolScreenState extends State<FindPoolScreen> {
             const SizedBox(height: 15),
 
             // --- SECTION 4: TIME PICKER ---
-            const Text("Lecture Start Time:", style: TextStyle(fontWeight: FontWeight.bold)),
+            const Text(
+              "Lecture Start Time:",
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
             ListTile(
               tileColor: Colors.grey[100],
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
               title: Text(_selectedTime.format(context)),
               trailing: const Icon(Icons.access_time, color: indigoBlue),
               onTap: () async {
-                final TimeOfDay? picked = await showTimePicker(context: context, initialTime: _selectedTime);
+                final TimeOfDay? picked = await showTimePicker(
+                  context: context,
+                  initialTime: _selectedTime,
+                );
                 if (picked != null) setState(() => _selectedTime = picked);
               },
             ),
-            
-            const Spacer(), // Pushes the button to the bottom
 
-            // --- SECTION 5: SEARCH & SAVE BUTTON ---
+            const Spacer(),
+
+            // --- SECTION 5: SEARCH & SAVE (With Enum Translation) ---
             ElevatedButton(
               onPressed: () {
                 if (_selectedDestination == null) {
@@ -146,26 +182,28 @@ class _FindPoolScreenState extends State<FindPoolScreen> {
                   );
                   return;
                 }
-                
+
+                // Translate UI String back to Locality Enum
+                final Locality destinationEnum = campusMap[_selectedDestination!]!;
+
                 final rideProvider = Provider.of<RideProvider>(context, listen: false);
-                
-                // COMBINE selected Date and selected Time into one DateTime object
+
                 final targetDateTime = DateTime(
-                  _selectedDate.year, 
-                  _selectedDate.month, 
-                  _selectedDate.day, 
-                  _selectedTime.hour, 
-                  _selectedTime.minute
+                  _selectedDate.year,
+                  _selectedDate.month,
+                  _selectedDate.day,
+                  _selectedTime.hour,
+                  _selectedTime.minute,
                 );
-                
+
                 rideProvider.joinOrCreatePool(
                   email: userProvider.userEmail ?? "student@mcast.edu.mt",
                   origin: _manualLocality ?? _detectedLocality,
-                  dest: _selectedDestination!,
-                  time: targetDateTime, // Pass the combined date/time
+                  destination: destinationEnum,
+                  time: targetDateTime,
                   region: userProvider.selectedRegion,
                 );
-                
+
                 Navigator.pop(context);
               },
               style: ElevatedButton.styleFrom(
@@ -174,7 +212,10 @@ class _FindPoolScreenState extends State<FindPoolScreen> {
                 foregroundColor: Colors.white,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               ),
-              child: const Text("Search for Matches", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+              child: const Text(
+                "Search for Matches",
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
             ),
           ],
         ),

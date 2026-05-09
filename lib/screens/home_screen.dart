@@ -114,8 +114,7 @@ class HomeScreen extends StatelessWidget {
                           child: const Icon(Icons.group, color: indigoBlue),
                         ),
                         title: Text(
-                          "${pool.originLocality} ➔ ${pool.destination}",
-                        ),
+                          "${pool.originLocality.name} ➔ ${pool.destination.name}"),
                         subtitle: Text(
                           "Lecture: ${DateFormat('E, MMM d – h:mm a').format(pool.lectureTime)}",
                           style: const TextStyle(fontSize: 13),

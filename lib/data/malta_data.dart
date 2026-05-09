@@ -1,30 +1,40 @@
-// lib/data/malta_data.dart
-const List<String> maltaLocalities = [
-  "Attard", "Balzan", "Birgu", "Birkirkara", "Birżebbuġa", "Cospicua", 
-  "Dingli", "Fgura", "Floriana", "Għargħur", "Għaxaq", "Gudja", "Gżira", 
-  "Ħamrun", "Iklin", "Kalkara", "Kirkop", "Lija", "Luqa", "Marsa", 
-  "Marsaskala", "Marsaxlokk", "Mdina", "Mellieħa", "Mġarr", "Mosta", 
-  "Mqabba", "Msida", "Mtarfa", "Naxxar", "Paola", "Pembroke", "Pietà", 
-  "Qormi", "Qrendi", "Rabat", "Safi", "San Ġiljan", "San Ġwann", 
-  "San Pawl il-Baħar", "Santa Luċija", "Santa Venera", "Senglea", 
-  "Siġġiewi", "Sliema", "Swieqi", "Ta' Xbiex", "Tarxien", "Valletta", 
-  "Xgħajra", "Żabbar", "Żebbuġ", "Żejtun", "Żurrieq"
+import 'route_logic.dart';
+
+// Helper lists to populate the dropdowns using Enums
+const List<Locality> maltaLocalities = [
+  Locality.attard, Locality.balzan, Locality.birgu, Locality.birkirkara, 
+  Locality.birzebbuga, Locality.cospicua, Locality.dingli, Locality.fgura, 
+  Locality.floriana, Locality.gharghur, Locality.ghaxaq, Locality.gudja, 
+  Locality.gzira, Locality.hamrun, Locality.iklin, Locality.kalkara, 
+  Locality.kirkop, Locality.lija, Locality.luqa, Locality.marsa, 
+  Locality.marsaskala, Locality.marsaxlokk, Locality.mdina, Locality.mellieha, 
+  Locality.mgarr, Locality.mosta, Locality.mqabba, Locality.msida, 
+  Locality.mtarfa, Locality.naxxar, Locality.paola, Locality.pembroke, 
+  Locality.pieta, Locality.qormi, Locality.qrendi, Locality.rabat, 
+  Locality.safi, Locality.sanGiljan, Locality.sanGwann, Locality.stPaulsBay, 
+  Locality.santaLucija, Locality.santaVenera, Locality.senglea, 
+  Locality.siggiewi, Locality.sliema, Locality.swieqi, Locality.taXbiex, 
+  Locality.tarxien, Locality.valletta, Locality.xghajra, Locality.zabbar, 
+  Locality.zebbug, Locality.zejtun, Locality.zurrieq
 ];
 
-const List<String> gozoLocalities = [
-  "Fontana", "Għajnsielem", "Għarb", "Għasri", "Kerċem", "Munxar", 
-  "Nadur", "Qala", "San Lawrenz", "Sannat", "Rabat (Gozo)", "Xagħra", 
-  "Xewkija", "Żebbuġ (Gozo)"
+const List<Locality> gozoLocalities = [
+  Locality.fontana, Locality.ghajnsielem, Locality.gharb, Locality.ghasri, 
+  Locality.kercem, Locality.munxar, Locality.nadur, Locality.qala, 
+  Locality.sanLawrenz, Locality.sannat, Locality.victoria, Locality.xaghra, 
+  Locality.xewkija, Locality.zebbugGozo
 ];
 
+// Mapping UI Strings to the Enums for the Destination dropdown
+const Map<String, Locality> campusMap = {
+  "MCAST Paola": Locality.paola,
+  "MCAST Mosta": Locality.mosta,
+  "MCAST Luqa": Locality.luqa,
+  "MCAST Gozo": Locality.xewkija,
+  "University of Malta (Msida)": Locality.msida,
+  "University of Malta (Marsaxlokk)": Locality.marsaxlokk,
+  "University of Malta (Gozo)": Locality.xewkija,
+  "Junior College (Msida)": Locality.msida,
+};
 
-const List<String> campusDestinations = [
-  "MCAST Paola", 
-  "MCAST Mosta", 
-  "MCAST Luqa",
-  "MCAST Gozo",
-  "University of Malta (Msida)", 
-  "University of Malta (Marsaxlokk)", 
-  "University of Malta (Gozo)", 
-  "Junior College (Msida)"
-];
+final List<String> campusDestinations = campusMap.keys.toList();

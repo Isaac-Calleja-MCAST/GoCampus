@@ -4,24 +4,28 @@ import 'package:hive_flutter/hive_flutter.dart';
 import 'providers/user_provider.dart';
 import 'providers/ride_provider.dart';
 import 'screens/login_screen.dart';
-import 'screens/home_screen.dart'; 
+import 'screens/home_screen.dart';
 
 void main() async {
+  // 1. Ensure Flutter is ready
   WidgetsFlutterBinding.ensureInitialized();
+  
+  // 2. Start Hive
   await Hive.initFlutter();
   
-  // 1. Create the provider first
+  // 3. Create the Providers
   final userProvider = UserProvider();
-  
-  // 2. WAIT for the session to load BEFORE running the app
+  final rideProvider = RideProvider();
+
+  // 4. Initialize Data (WAIT for it to finish)
   await userProvider.loadSession();
-  
+  await rideProvider.loadPools();
+
   runApp(
     MultiProvider(
       providers: [
-        // 3. Use .value because we already initialized it above
         ChangeNotifierProvider.value(value: userProvider),
-        ChangeNotifierProvider(create: (_) => RideProvider()),
+        ChangeNotifierProvider.value(value: rideProvider),
       ],
       child: const GoCampusApp(),
     ),
@@ -40,16 +44,24 @@ class GoCampusApp extends StatelessWidget {
         useMaterial3: true,
         colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF3F51B5)),
       ),
-      // THE GATE: This builder runs EVERY time UserProvider changes
-      home: Consumer<UserProvider>(
-        builder: (context, userProvider, child) {
-          if (userProvider.isLoggedIn) {
-            return const HomeScreen();
-          } else {
-            return const LoginScreen();
-          }
-        },
-      ),
+      // THE GATE: This prevents the black screen
+      home: const AuthGate(),
     );
+  }
+}
+
+class AuthGate extends StatelessWidget {
+  const AuthGate({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    // We listen to the userEmail to decide where to go
+    final userProvider = Provider.of<UserProvider>(context);
+
+    if (userProvider.isLoggedIn) {
+      return const HomeScreen();
+    } else {
+      return const LoginScreen();
+    }
   }
 }

@@ -1,10 +1,11 @@
+import '../data/route_logic.dart';
 enum Region { malta, gozo }
 enum PoolStatus { recruiting, collectingAddresses, awaitingPayment, booked }
 
 class CarpoolPool {
   final String id;
-  final String originLocality;
-  final String destination;
+  final Locality originLocality;
+  final Locality destination; 
   final DateTime lectureTime;
   final List<String> studentEmails;
   final Map<String, String> studentAddresses; 

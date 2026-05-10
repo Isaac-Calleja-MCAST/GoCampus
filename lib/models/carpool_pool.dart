@@ -44,4 +44,36 @@ class CarpoolPool {
     double total = fetchedPrice ?? 12.00;
     return total - pricePerStudent;
   }
+
+  // Convert Pool object to a Map for Hive
+  Map<String, dynamic> toMap() {
+    return {
+      'id': id,
+      'originLocality': originLocality.index, // Save Enum as a number
+      'destination': destination.index,
+      'lectureTime': lectureTime.toIso8601String(),
+      'studentEmails': studentEmails,
+      'studentAddresses': studentAddresses,
+      'leadStudentEmail': leadStudentEmail,
+      'region': region.index,
+      'status': status.index,
+      'fetchedPrice': fetchedPrice,
+    };
+  }
+
+  // Create a Pool object from a Hive Map
+  factory CarpoolPool.fromMap(Map<dynamic, dynamic> map) {
+    return CarpoolPool(
+      id: map['id'],
+      originLocality: Locality.values[map['originLocality']],
+      destination: Locality.values[map['destination']],
+      lectureTime: DateTime.parse(map['lectureTime']),
+      studentEmails: List<String>.from(map['studentEmails']),
+      studentAddresses: Map<String, String>.from(map['studentAddresses']),
+      leadStudentEmail: map['leadStudentEmail'],
+      region: Region.values[map['region']],
+      status: PoolStatus.values[map['status']],
+      fetchedPrice: map['fetchedPrice'],
+    );
+  }
 }

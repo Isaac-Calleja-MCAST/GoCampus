@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 import '../models/carpool_pool.dart';
 import '../data/route_logic.dart';
 
@@ -7,9 +8,25 @@ class RideProvider with ChangeNotifier {
 
   List<CarpoolPool> get allPools => [..._allPools];
 
+  // Load all pools from the phone's memory
   Future<void> loadPools() async {
-    // Hive loading will go here later
+    var box = await Hive.openBox('poolsBox');
+    if (box.isNotEmpty) {
+      _allPools.clear();
+      for (var item in box.values) {
+        _allPools.add(CarpoolPool.fromMap(item));
+      }
+    }
     notifyListeners();
+  }
+
+  // Helper function to save the current list to Hive
+  Future<void> _saveToHive() async {
+    var box = await Hive.openBox('poolsBox');
+    await box.clear(); // Clear the old list
+    for (var pool in _allPools) {
+      await box.add(pool.toMap()); // Save each pool as a map
+    }
   }
 
   void joinOrCreatePool({
@@ -49,6 +66,7 @@ class RideProvider with ChangeNotifier {
         status: PoolStatus.recruiting,
       ));
     }
+    _saveToHive();
     notifyListeners();
   }
 

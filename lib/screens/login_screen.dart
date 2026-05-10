@@ -125,12 +125,8 @@ class LoginScreen extends StatelessWidget {
 
   void _completeLogin(BuildContext context, String email, Region region) async {
     final userProvider = Provider.of<UserProvider>(context, listen: false);
-
-    // Set region first
+    
     await userProvider.setRegion(region);
-    // Then log in (this triggers the Auth Gate in main.dart)
     await userProvider.login(email);
-
-    if (context.mounted) Navigator.pop(context); // Close the bottom sheet
   }
 }

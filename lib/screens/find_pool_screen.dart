@@ -22,7 +22,7 @@ class _FindPoolScreenState extends State<FindPoolScreen> {
   TimeOfDay _selectedTime = const TimeOfDay(hour: 8, minute: 30);
   
   // These are now Locality Enums
-  Locality _detectedLocality = Locality.msida; 
+  Locality _detectedLocality = Locality.valletta; 
   Locality? _manualLocality;
 
   @override
@@ -118,7 +118,7 @@ class _FindPoolScreenState extends State<FindPoolScreen> {
               style: TextStyle(fontWeight: FontWeight.bold),
             ),
             DropdownButtonFormField<String>(
-              value: _selectedDestination,
+              initialValue: _selectedDestination,
               items: campusDestinations.map((String value) {
                 return DropdownMenuItem<String>(
                   value: value,

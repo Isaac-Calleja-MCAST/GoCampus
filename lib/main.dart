@@ -7,17 +7,13 @@ import 'screens/login_screen.dart';
 import 'screens/home_screen.dart';
 
 void main() async {
-  // 1. Ensure Flutter is ready
   WidgetsFlutterBinding.ensureInitialized();
-  
-  // 2. Start Hive
   await Hive.initFlutter();
   
-  // 3. Create the Providers
   final userProvider = UserProvider();
   final rideProvider = RideProvider();
 
-  // 4. Initialize Data (WAIT for it to finish)
+  // Load everything BEFORE the app starts to prevent flickering/black screens
   await userProvider.loadSession();
   await rideProvider.loadPools();
 
@@ -44,8 +40,8 @@ class GoCampusApp extends StatelessWidget {
         useMaterial3: true,
         colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF3F51B5)),
       ),
-      // THE GATE: This prevents the black screen
-      home: const AuthGate(),
+      // THE FIX: The AuthGate handles the logic internally
+      home: const AuthGate(), 
     );
   }
 }
@@ -55,13 +51,9 @@ class AuthGate extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // We listen to the userEmail to decide where to go
-    final userProvider = Provider.of<UserProvider>(context);
+    // This widget REBUILDS automatically the instant isLoggedIn changes
+    final isLoggedIn = context.watch<UserProvider>().isLoggedIn;
 
-    if (userProvider.isLoggedIn) {
-      return const HomeScreen();
-    } else {
-      return const LoginScreen();
-    }
+    return isLoggedIn ? const HomeScreen() : const LoginScreen();
   }
 }

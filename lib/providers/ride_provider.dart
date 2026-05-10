@@ -8,6 +8,17 @@ class RideProvider with ChangeNotifier {
 
   List<CarpoolPool> get allPools => [..._allPools];
 
+  CarpoolPool? getActivePoolForUser(String email) {
+    try {
+      return _allPools.firstWhere(
+        (pool) => pool.studentEmails.contains(email) && 
+                  pool.status != PoolStatus.booked,
+      );
+    } catch (e) {
+      return null; // User is not in an active pool
+    }
+  }
+  
   // Load all pools from the phone's memory
   Future<void> loadPools() async {
     var box = await Hive.openBox('poolsBox');

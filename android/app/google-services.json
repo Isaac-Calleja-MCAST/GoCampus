@@ -1,0 +1,49 @@
+{
+  "project_info": {
+    "project_number": "579758461412",
+    "firebase_url": "https://myproject-d9d3f-default-rtdb.europe-west1.firebasedatabase.app",
+    "project_id": "myproject-d9d3f",
+    "storage_bucket": "myproject-d9d3f.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:579758461412:android:0e7b83521a918f3844f7f1",
+        "android_client_info": {
+          "package_name": "com.example.go_campus"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDn4E2vIluudKcYkeqnLq-WtI58Bnd-6Fc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:579758461412:android:134b82f3def8a8e144f7f1",
+        "android_client_info": {
+          "package_name": "com.example.mobileappshomeassignment"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDn4E2vIluudKcYkeqnLq-WtI58Bnd-6Fc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

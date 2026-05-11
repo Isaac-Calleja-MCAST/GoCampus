@@ -47,10 +47,54 @@ class LoginScreen extends StatelessWidget {
                 color: Colors.redAccent,
                 onTap: () => _showRegionPicker(context, "student@um.edu.mt"),
               ),
+
+              // ... underneath your Google/Microsoft buttons ...
+              const Divider(height: 50),
+              const Text(
+                "DEBUG MODE (For Testing)",
+                style: TextStyle(color: Colors.orange),
+              ),
+              const SizedBox(height: 10),
+              Wrap(
+                spacing: 10,
+                children: [
+                  _debugUserButton(
+                    context,
+                    "Student 1",
+                    "student1@mcast.edu.mt",
+                  ),
+                  _debugUserButton(
+                    context,
+                    "Student 2",
+                    "student2@mcast.edu.mt",
+                  ),
+                  _debugUserButton(
+                    context,
+                    "Student 3",
+                    "student3@mcast.edu.mt",
+                  ),
+                  _debugUserButton(
+                    context,
+                    "Student 4",
+                    "student4@mcast.edu.mt",
+                  ),
+                ],
+              ),
             ],
           ),
         ),
       ),
+    );
+  }
+
+  Widget _debugUserButton(BuildContext context, String label, String email) {
+    return ElevatedButton(
+      onPressed: () => _completeLogin(context, email, Region.malta),
+      style: ElevatedButton.styleFrom(
+        backgroundColor: Colors.orange[100],
+        foregroundColor: Colors.orange[900],
+      ),
+      child: Text(label),
     );
   }
 
@@ -125,7 +169,7 @@ class LoginScreen extends StatelessWidget {
 
   void _completeLogin(BuildContext context, String email, Region region) async {
     final userProvider = Provider.of<UserProvider>(context, listen: false);
-    
+
     await userProvider.setRegion(region);
     await userProvider.login(email);
   }

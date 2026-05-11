@@ -1,15 +1,28 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:hive_flutter/hive_flutter.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'providers/user_provider.dart';
 import 'providers/ride_provider.dart';
 import 'screens/login_screen.dart';
 import 'screens/home_screen.dart';
 
+final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin = 
+    FlutterLocalNotificationsPlugin();
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  // await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   await Hive.initFlutter();
   
+  const AndroidInitializationSettings initializationSettingsAndroid =
+      AndroidInitializationSettings('@mipmap/ic_launcher');
+  const InitializationSettings initializationSettings = InitializationSettings(
+    android: initializationSettingsAndroid,
+  );
+  await flutterLocalNotificationsPlugin.initialize(
+    settings: initializationSettings);
+
   final userProvider = UserProvider();
   final rideProvider = RideProvider();
 

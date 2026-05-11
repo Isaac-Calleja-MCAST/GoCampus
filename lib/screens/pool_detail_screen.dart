@@ -4,6 +4,9 @@ import 'package:intl/intl.dart';
 import '../models/carpool_pool.dart';
 import '../providers/ride_provider.dart';
 import '../providers/user_provider.dart';
+import '../data/route_logic.dart';
+import '../data/malta_data.dart';
+import '../services/location_service.dart'; // Ensure this file exists from previous step
 
 class PoolDetailScreen extends StatefulWidget {
   final CarpoolPool pool;
@@ -15,187 +18,179 @@ class PoolDetailScreen extends StatefulWidget {
 
 class _PoolDetailScreenState extends State<PoolDetailScreen> {
   final _addressController = TextEditingController();
+  
+  // Define Brand Colors at class level so all methods can see them
+  static const Color indigoBlue = Color(0xFF3F51B5);
+  static const Color islandGreen = Color(0xFF2E7D32);
 
   @override
   Widget build(BuildContext context) {
-    const Color indigoBlue = Color(0xFF3F51B5);
-    const Color islandGreen = Color(0xFF2E7D32);
-
-    // Get the current user email to check their individual status
     final userEmail = Provider.of<UserProvider>(context).userEmail ?? "";
-    final isLead = widget.pool.leadStudentEmail == userEmail;
-    final hasSubmittedAddress = widget.pool.studentAddresses.containsKey(userEmail);
 
-    return Scaffold(
-      appBar: AppBar(title: const Text("Pool Status"), backgroundColor: indigoBlue, foregroundColor: Colors.white),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            if (isLead)
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(12),
-                margin: const EdgeInsets.only(bottom: 20),
-                decoration: BoxDecoration(
-                  color: indigoBlue.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: indigoBlue.withValues(alpha: 0.5)),
-                ),
-                child: Row(
-                  children: [
-                    Icon(Icons.stars_rounded, color: indigoBlue),
-                    const SizedBox(width: 12),
-                    const Expanded(
-                      child: Text(
-                        "You are the Lead Student. You will be responsible for confirming the Bolt booking once the car is full.",
-                        style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            // ---
-            // 1. HEADER SECTION
-            Text("Ride to ${widget.pool.destination}", 
-                style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: indigoBlue)),
-            Text("From ${widget.pool.originLocality} at ${DateFormat('jm').format(widget.pool.lectureTime)}"),
-            const SizedBox(height: 10),
-            
-            // STATUS BADGE
-            _buildStatusBadge(widget.pool.status),
-            const Divider(height: 40),
+    return Consumer<RideProvider>(
+      builder: (context, rideProvider, child) {
+        CarpoolPool pool;
+        try {
+          pool = rideProvider.allPools.firstWhere((p) => p.id == widget.pool.id);
+        } catch (e) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) Navigator.of(context).popUntil((route) => route.isFirst);
+          });
+          return const Scaffold(body: Center(child: CircularProgressIndicator()));
+        }
 
-            // 2. PASSENGERS LIST
-            const Text("Passengers & Progress:", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-            const SizedBox(height: 10),
-            ...widget.pool.studentEmails.map((email) {
-              bool finished = widget.pool.studentAddresses.containsKey(email);
-              return ListTile(
-                leading: Icon(finished ? Icons.check_circle : Icons.radio_button_unchecked, 
-                             color: finished ? islandGreen : Colors.grey),
-                title: Text(email),
-                subtitle: Text(finished ? "Address: ${widget.pool.studentAddresses[email]}" : "Waiting for address..."),
-                trailing: email == widget.pool.leadStudentEmail 
-                    ? const Chip(label: Text("Lead", style: TextStyle(fontSize: 10))) : null,
-              );
-            }),
+        final bool isMember = pool.studentEmails.contains(userEmail);
+        final bool isLead = pool.leadStudentEmail == userEmail;
+        final bool hasSubmittedAddress = pool.studentAddresses.containsKey(userEmail);
 
-            const SizedBox(height: 30),
+        return Scaffold(
+          appBar: AppBar(
+            title: const Text("Pool Status"), 
+            backgroundColor: indigoBlue, 
+            foregroundColor: Colors.white
+          ),
+          body: SingleChildScrollView(
+            padding: const EdgeInsets.all(20.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (isMember && isLead) _buildLeadBanner(),
+                
+                Text("Ride to ${getCampusDisplayName(pool.destination)}", 
+                    style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: indigoBlue)),
+                Text("From ${pool.originLocality.name} at ${DateFormat('h:mm a').format(pool.lectureTime)}"),
+                
+                const SizedBox(height: 10),
+                _buildStatusBadge(pool.status),
+                const Divider(height: 40),
 
-            // 3. DYNAMIC ACTION SECTION (The "Engine" of the UI)
-            _buildActionArea(context, userEmail, hasSubmittedAddress, islandGreen, indigoBlue),
-          ],
-        ),
-      ),
+                const Text("Passengers:", style: TextStyle(fontWeight: FontWeight.bold)),
+                ...pool.studentEmails.map((email) {
+                  bool addrIn = pool.studentAddresses.containsKey(email);
+                  return ListTile(
+                    leading: Icon(addrIn ? Icons.check_circle : Icons.person_outline, 
+                                 color: addrIn ? islandGreen : Colors.grey),
+                    title: Text(email),
+                    subtitle: Text(addrIn ? "Address: ${pool.studentAddresses[email]}" : "Waiting for address..."),
+                    trailing: email == pool.leadStudentEmail ? const Icon(Icons.stars, color: Colors.orange, size: 16) : null,
+                  );
+                }),
+
+                const SizedBox(height: 30),
+
+                isMember 
+                  ? _buildMemberActionArea(pool, userEmail, hasSubmittedAddress)
+                  : _buildVisitorActionArea(rideProvider, pool, userEmail),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 
-  // UI HELPER: Status Badge
-  Widget _buildStatusBadge(PoolStatus status) {
-    String label;
-    Color color;
-    switch (status) {
-      case PoolStatus.recruiting: label = "RECRUITING (Need 4)"; color = Colors.orange; break;
-      case PoolStatus.collectingAddresses: label = "POOL FULL - ENTER ADDRESSES"; color = Colors.blue; break;
-      case PoolStatus.awaitingPayment: label = "AWAITING PAYMENT"; color = Colors.purple; break;
-      case PoolStatus.booked: label = "BOOKED & CONFIRMED"; color = Colors.green; break;
-    }
+  Widget _buildLeadBanner() {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-      decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(20)),
-      child: Text(label, style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      margin: const EdgeInsets.only(bottom: 20),
+      decoration: BoxDecoration(
+        color: indigoBlue.withValues(alpha: 0.1), 
+        borderRadius: BorderRadius.circular(12), 
+        border: Border.all(color: indigoBlue.withValues(alpha: 0.5))
+      ),
+      child: const Text("⭐ You are the Lead Student. You'll confirm the booking once everyone pays.", 
+                        style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
     );
   }
 
-  // UI HELPER: Dynamic Action Area
-  Widget _buildActionArea(BuildContext context, String email, bool hasSubmitted, Color green, Color indigo) {
-    // PHASE 1: Recruiting
-    if (widget.pool.status == PoolStatus.recruiting) {
-      return Center(
-        child: Column(
-          children: [
-            const CircularProgressIndicator(),
-            const SizedBox(height: 10),
-            Text("Waiting for ${4 - widget.pool.studentEmails.length} more students to join..."),
-          ],
-        ),
-      );
-    }
+  Widget _buildStatusBadge(PoolStatus status) {
+    return Chip(
+      label: Text(status.name.toUpperCase(), style: const TextStyle(fontSize: 10, color: Colors.white)), 
+      backgroundColor: indigoBlue
+    );
+  }
 
-    // PHASE 2: Collecting Addresses
-    if (widget.pool.status == PoolStatus.collectingAddresses) {
-      if (hasSubmitted) {
-        return const Center(child: Text("✅ Your address is saved. Waiting for others."));
-      }
+  Widget _buildMemberActionArea(CarpoolPool pool, String email, bool hasSubmitted) {
+    final rideProvider = Provider.of<RideProvider>(context, listen: false);
+
+    if (pool.status == PoolStatus.recruiting) {
       return Column(
         children: [
-          const Text("Enter your exact pickup address for the Bolt driver:", 
-                    style: TextStyle(fontWeight: FontWeight.bold)),
+          Text("Searching... (${pool.studentEmails.length}/4)"),
           const SizedBox(height: 10),
-          TextField(
-            controller: _addressController,
-            decoration: const InputDecoration(border: OutlineInputBorder(), hintText: "House No., Street Name"),
-          ),
-          const SizedBox(height: 10),
-          ElevatedButton(
-            onPressed: () {
-              if (_addressController.text.isNotEmpty) {
-                Provider.of<RideProvider>(context, listen: false)
-                    .submitAddress(widget.pool.id, email, _addressController.text);
-              }
-            },
-            style: ElevatedButton.styleFrom(minimumSize: const Size.fromHeight(50), backgroundColor: indigo),
-            child: const Text("Submit Address", style: TextStyle(color: Colors.white)),
+          if (!pool.readyToStartEmails.contains(email))
+            ElevatedButton(
+              onPressed: () => rideProvider.voteToStartEarly(pool.id, email), 
+              child: const Text("Start carpool now (Vote)")
+            ),
+          TextButton(
+            onPressed: () => rideProvider.leavePool(pool.id, email), 
+            child: const Text("Leave Pool", style: TextStyle(color: Colors.red))
           ),
         ],
       );
     }
 
-    // PHASE 3: Awaiting Payment (The Financial Model)
-    if (widget.pool.status == PoolStatus.awaitingPayment) {
-      return Card(
-        color: green.withValues(alpha: 0.1),
-        child: Padding(
-          padding: const EdgeInsets.all(20.0),
-          child: Column(
-            children: [
-              const Text("ROUTE CONFIRMED", style: TextStyle(fontWeight: FontWeight.bold)),
-              const Divider(),
-              _priceRow("Estimated Ride:", "€12.00"),
-              _priceRow("Platform Fee:", "€0.50"),
-              const Divider(),
-              _priceRow("YOUR TOTAL:", "€${widget.pool.pricePerStudent.toStringAsFixed(2)}", isBold: true),
-              const SizedBox(height: 20),
-              ElevatedButton.icon(
-                onPressed: () {
-                  // In a real app: Trigger Revolut/Stripe
-                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Redirecting to Payment...")));
+    if (pool.status == PoolStatus.collectingAddresses) {
+      if (hasSubmitted) return const Center(child: Text("✅ Address verified. Waiting for others..."));
+
+      return Column(
+        children: [
+          const Text("Enter your exact pickup address:"),
+          const SizedBox(height: 10),
+          TextField(
+            controller: _addressController, 
+            decoration: InputDecoration(
+              hintText: "12, Triq il-Forn",
+              border: const OutlineInputBorder(),
+              suffixIcon: IconButton(
+                icon: const Icon(Icons.location_searching, color: indigoBlue),
+                onPressed: () async {
+                  // ASYNC GAP FIX: Store navigator/messenger before await
+                  final messenger = ScaffoldMessenger.of(context);
+                  
+                  bool isValid = await LocationService.isAddressValid(_addressController.text, pool.originLocality.name);
+                  
+                  if (!mounted) return; // FIX: Check if screen still exists
+
+                  if (isValid) {
+                    messenger.showSnackBar(const SnackBar(content: Text("Address Verified!"), backgroundColor: islandGreen));
+                    rideProvider.submitAddress(pool.id, email, _addressController.text);
+                  } else {
+                    messenger.showSnackBar(const SnackBar(content: Text("Address not found. check spelling."), backgroundColor: Colors.red));
+                  }
                 },
-                icon: const Icon(Icons.payment),
-                label: const Text("Pay & Join Ride"),
-                style: ElevatedButton.styleFrom(minimumSize: const Size.fromHeight(50), backgroundColor: Colors.black),
-              )
-            ],
+              ),
+            ),
           ),
-        ),
+        ],
+      );
+    }
+
+    if (pool.status == PoolStatus.awaitingPayment) {
+      return Column(
+        children: [
+          const Text("Ready for Payment", style: TextStyle(fontWeight: FontWeight.bold)),
+          const SizedBox(height: 10),
+          ElevatedButton.icon(
+            onPressed: () {}, 
+            icon: const Icon(Icons.payment), 
+            label: const Text("Pay via Revolut"),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.black, foregroundColor: Colors.white, minimumSize: const Size.fromHeight(50)),
+          ),
+        ],
       );
     }
 
     return const SizedBox();
   }
 
-  Widget _priceRow(String label, String value, {bool isBold = false}) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4.0),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(label, style: TextStyle(fontWeight: isBold ? FontWeight.bold : FontWeight.normal)),
-          Text(value, style: TextStyle(fontWeight: isBold ? FontWeight.bold : FontWeight.normal, fontSize: isBold ? 18 : 14)),
-        ],
-      ),
+  Widget _buildVisitorActionArea(RideProvider provider, CarpoolPool pool, String email) {
+    return ElevatedButton(
+      onPressed: pool.isFull ? null : () => provider.manualJoin(pool.id, email),
+      style: ElevatedButton.styleFrom(backgroundColor: indigoBlue, minimumSize: const Size.fromHeight(50)),
+      child: Text(pool.isFull ? "Pool Full" : "Join this Pool", style: const TextStyle(color: Colors.white)),
     );
   }
 }

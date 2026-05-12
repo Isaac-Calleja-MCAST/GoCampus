@@ -1,19 +1,12 @@
-// ================================================================
-// LOCALITIES ENUM
-// Perfectly synced with your malta_data list.
-// ================================================================
 enum Locality {
-  attard, balzan, birgu, birkirkara, birzebbuga, cospicua, dingli, 
-  fgura, floriana, gharghur, ghaxaq, gudja, gzira, hamrun, iklin, 
-  kalkara, kirkop, lija, luqa, marsa, marsaskala, marsaxlokk, mdina, 
-  mellieha, mgarr, mosta, mqabba, msida, mtarfa, naxxar, paola, 
-  pembroke, pieta, qormi, qrendi, rabat, safi, sanGiljan, sanGwann, 
-  stPaulsBay, santaLucija, santaVenera, senglea, siggiewi, sliema, 
-  swieqi, taXbiex, tarxien, valletta, xghajra, zabbar, zebbug, 
-  zejtun, zurrieq, 
-  // Gozo
-  fontana, ghajnsielem, gharb, ghasri, kercem, munxar, nadur, 
-  qala, sanLawrenz, sannat, victoria, xaghra, xewkija, zebbugGozo
+  attard, balzan, birgu, birkirkara, birzebbuga, cospicua, dingli, fgura, floriana, 
+  gharghur, ghaxaq, gudja, gzira, hamrun, iklin, kalkara, kirkop, lija, luqa, marsa, 
+  marsaskala, marsaxlokk, mdina, mellieha, mgarr, mosta, mqabba, msida, mtarfa, 
+  naxxar, paola, pembroke, pieta, qormi, qrendi, rabat, safi, sanGiljan, sanGwann, 
+  stPaulsBay, santaLucija, santaVenera, senglea, siggiewi, sliema, swieqi, taXbiex, 
+  tarxien, valletta, xghajra, zabbar, zebbug, zejtun, zurrieq,
+  fontana, ghajnsielem, gharb, ghasri, kercem, munxar, nadur, qala, sanLawrenz, 
+  sannat, victoria, xaghra, xewkija, zebbugGozo
 }
 
 enum RouteZone { harbour, central, centralSouth, centralNorth, north, southHarbour, south, west, gozo }
@@ -22,7 +15,7 @@ class LocalityNode {
   final Locality locality;
   final String displayName;
   final RouteZone zone;
-  final List<Locality> connected; // Matches your class
+  final List<Locality> connected;
 
   const LocalityNode({
     required this.locality,
@@ -32,9 +25,6 @@ class LocalityNode {
   });
 }
 
-// ================================================================
-// THE MASTER GRAPH
-// ================================================================
 const Map<Locality, LocalityNode> localityGraph = {
   Locality.msida: LocalityNode(locality: Locality.msida, displayName: "Msida", zone: RouteZone.harbour, connected: [Locality.gzira, Locality.pieta, Locality.birkirkara, Locality.taXbiex]),
   Locality.valletta: LocalityNode(locality: Locality.valletta, displayName: "Valletta", zone: RouteZone.harbour, connected: [Locality.floriana]),
@@ -53,20 +43,9 @@ const Map<Locality, LocalityNode> localityGraph = {
   Locality.victoria: LocalityNode(locality: Locality.victoria, displayName: "Victoria (Rabat)", zone: RouteZone.gozo, connected: [Locality.xewkija, Locality.sannat]),
 };
 
-// ================================================================
-// MATCHING ENGINE & EXTENSION
-// ================================================================
-class MatchResult {
-  final bool compatible;
-  final int score;
-  const MatchResult({required this.compatible, required this.score});
-}
-
-// ================================================================
-// MATCHING ENGINE 
-// ================================================================
 class MatchingEngine {
-  static MatchResult checkCompatibility({
+  // FIX: Renamed method and parameters to match RideProvider call
+  static bool checkCompatibility({
     required Locality userOrigin,
     required Locality poolOrigin,
     required Locality userDestination,
@@ -74,41 +53,29 @@ class MatchingEngine {
     required DateTime userDepartureTime,
     required DateTime poolDepartureTime,
   }) {
+    if (userDestination != poolDestination) return false;
+
     int score = 0;
 
-    // 1. Destination Match (MANDATORY)
-    if (userDestination == poolDestination) {
-      score += 40;
-    } else {
-      return const MatchResult(compatible: false, score: 0);
-    }
-
-    // 2. Exact Origin Match
+    // 1. Origin Matching
     if (userOrigin == poolOrigin) {
       score += 30;
-    } 
-    // 3. Connected/Adjacency Match
-    else if (localityGraph[userOrigin]?.connected.contains(poolOrigin) ?? false) {
+    } else if (localityGraph[userOrigin]?.connected.contains(poolOrigin) ?? false) {
       score += 20;
-    } 
-    // 4. Same Zone Fallback
-    else {
-      final userZone = localityGraph[userOrigin]?.zone;
-      final poolZone = localityGraph[poolOrigin]?.zone;
-      if (userZone != null && userZone == poolZone) {
-        score += 10;
-      }
-    }
-
-    // 5. Time Window Matching
-    final minuteDiff = userDepartureTime.difference(poolDepartureTime).inMinutes.abs();
-    if (minuteDiff <= 15) {
-      score += 20;
-    } else if (minuteDiff <= 30) {
+    } else if (localityGraph[userOrigin]?.zone == localityGraph[poolOrigin]?.zone) {
       score += 10;
     }
 
-    return MatchResult(compatible: score >= 60, score: score);
+    // 2. Time Window Matching
+    final diff = userDepartureTime.difference(poolDepartureTime).inMinutes.abs();
+    if (diff <= 15) {
+      score += 30;
+    } else if (diff <= 30) {
+      score += 15;
+    }
+
+    // 3. Final Decision (Score 50+ is a match)
+    return score >= 50;
   }
 }
 

@@ -1,6 +1,7 @@
+// user_provider.dart
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
-import '../models/carpool_pool.dart'; // To access the Region enum
+import '../models/carpool_pool.dart'; 
 
 class UserProvider with ChangeNotifier {
   String? _userEmail;

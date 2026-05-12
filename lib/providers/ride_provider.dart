@@ -3,46 +3,40 @@ import 'package:hive_flutter/hive_flutter.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import '../models/carpool_pool.dart';
 import '../data/route_logic.dart';
-import '../main.dart'; // To access the global notification plugin
+import '../services/firestore_service.dart';
+import '../main.dart';
 
 class RideProvider with ChangeNotifier {
+  final FirestoreService _firestore = FirestoreService();
   final List<CarpoolPool> _allPools = [];
 
   List<CarpoolPool> get allPools => [..._allPools];
 
-  // --- SESSION HELPERS ---
+  void startRealtimeSync() {
+    _firestore.getPoolsStream().listen((updated) {
+      _allPools.clear();
+      _allPools.addAll(updated);
+      notifyListeners();
+    });
+  }
 
   CarpoolPool? getActivePoolForUser(String email) {
     try {
-      return _allPools.firstWhere(
-        (pool) => pool.studentEmails.contains(email) && pool.status != PoolStatus.booked,
-      );
+      return _allPools.firstWhere((p) => p.studentEmails.contains(email) && p.status != PoolStatus.booked);
     } catch (e) {
       return null;
     }
   }
 
-  // --- HARDWARE NOTIFICATIONS (Priority #9) ---
-
-  Future<void> _triggerNotification(String title, String body) async {
-    const AndroidNotificationDetails androidDetails = AndroidNotificationDetails(
-      'gocampus_alerts', 
-      'Ride Notifications',
-      channelDescription: 'Alerts for pool matches and status changes',
-      importance: Importance.max,
-      priority: Priority.high,
-    );
-    const NotificationDetails platformDetails = NotificationDetails(android: androidDetails);
-
+  Future<void> _notify(String title, String body) async {
+    const android = AndroidNotificationDetails('gocampus', 'Alerts', importance: Importance.max, priority: Priority.high);
     await flutterLocalNotificationsPlugin.show(
-      id: DateTime.now().millisecond % 100000, // Unique ID
-      title: title,
-      body: body,
-      notificationDetails: platformDetails,
+      id: DateTime.now().millisecond % 100000, 
+      title: title, 
+      body: body, 
+      notificationDetails: const NotificationDetails(android: android),
     );
   }
-
-  // --- PERSISTENCE (Hive) ---
 
   Future<void> loadPools() async {
     var box = await Hive.openBox('poolsBox');
@@ -63,8 +57,6 @@ class RideProvider with ChangeNotifier {
     }
   }
 
-  // --- POOL OPERATIONS ---
-
   void joinOrCreatePool({
     required String email,
     required Locality origin,
@@ -74,29 +66,29 @@ class RideProvider with ChangeNotifier {
   }) {
     try {
       final existingPool = _allPools.firstWhere((p) {
-        final result = MatchingEngine.checkCompatibility(
+        // Now returns a simple bool
+        return MatchingEngine.checkCompatibility(
           userOrigin: origin,
           poolOrigin: p.originLocality,
           userDestination: destination,
           poolDestination: p.destination,
           userDepartureTime: time,
           poolDepartureTime: p.lectureTime,
-        );
-        return result.compatible && !p.isFull && p.status == PoolStatus.recruiting;
+        ) && !p.isFull && p.status == PoolStatus.recruiting;
       });
 
       if (!existingPool.studentEmails.contains(email)) {
         existingPool.studentEmails.add(email);
+        _notify("Passenger Joined!", "Someone joined your carpool to ${destination.name}");
         
-        _triggerNotification("Passenger Joined!", "A new student joined your pool to ${destination.name}");
-
-        if (existingPool.studentEmails.length == 4) {
-          _updatePoolStatus(existingPool.id, PoolStatus.collectingAddresses);
-          _triggerNotification("Car Full!", "Match complete. Please enter your pickup address.");
+        // FIX: Using the helper method to resolve the warning
+        if (existingPool.isFull) {
+          _updateStatus(existingPool.id, PoolStatus.collectingAddresses);
         }
+        _firestore.syncPool(existingPool);
       }
     } catch (e) {
-      _allPools.add(CarpoolPool(
+      final newPool = CarpoolPool(
         id: DateTime.now().toString(),
         originLocality: origin,
         destination: destination,
@@ -105,7 +97,9 @@ class RideProvider with ChangeNotifier {
         leadStudentEmail: email,
         region: region,
         status: PoolStatus.recruiting,
-      ));
+      );
+      _allPools.add(newPool);
+      _firestore.syncPool(newPool);
     }
     _saveToHive();
     notifyListeners();
@@ -116,167 +110,76 @@ class RideProvider with ChangeNotifier {
     if (index != -1 && !_allPools[index].isFull) {
       if (!_allPools[index].studentEmails.contains(email)) {
         _allPools[index].studentEmails.add(email);
-        
-        _triggerNotification("New Joiner", "Someone joined your carpool manually.");
-
         if (_allPools[index].studentEmails.length == 4) {
-          _updatePoolStatus(poolId, PoolStatus.collectingAddresses);
+          _updateStatus(poolId, PoolStatus.collectingAddresses);
         }
+        _firestore.syncPool(_allPools[index]);
         _saveToHive();
+        _notify("New Joiner", "Someone joined your carpool manually.");
         notifyListeners();
       }
     }
   }
 
   void leavePool(String poolId, String email) {
-    final index = _allPools.indexWhere((p) => p.id == poolId);
-    if (index == -1) return;
-
-    final pool = _allPools[index];
-    final updatedEmails = List<String>.from(pool.studentEmails)..remove(email);
-
-    if (updatedEmails.isEmpty) {
-      _allPools.removeAt(index);
+    final i = _allPools.indexWhere((p) => p.id == poolId);
+    if (i == -1) return;
+    final pool = _allPools[i];
+    pool.studentEmails.remove(email);
+    if (pool.studentEmails.isEmpty) {
+      _firestore.deletePool(poolId);
+      _allPools.removeAt(i);
     } else {
-      String newLead = pool.leadStudentEmail;
-      if (email == pool.leadStudentEmail) {
-        newLead = updatedEmails.first;
-      }
-
-      final updatedAddresses = Map<String, String>.from(pool.studentAddresses)..remove(email);
-      final updatedVotes = List<String>.from(pool.readyToStartEmails)..remove(email);
-
-      _allPools[index] = CarpoolPool(
-        id: pool.id,
-        originLocality: pool.originLocality,
-        destination: pool.destination,
-        lectureTime: pool.lectureTime,
-        studentEmails: updatedEmails,
-        studentAddresses: updatedAddresses,
-        readyToStartEmails: updatedVotes,
-        leadStudentEmail: newLead,
-        region: pool.region,
-        status: PoolStatus.recruiting, 
-      );
-      
-      _triggerNotification("Passenger Left", "Someone left the pool. Recruiting for a replacement.");
+      String lead = pool.leadStudentEmail == email ? pool.studentEmails.first : pool.leadStudentEmail;
+      _allPools[i] = pool.copyWith(leadStudentEmail: lead, status: PoolStatus.recruiting);
+      _firestore.syncPool(_allPools[i]);
     }
-    
     _saveToHive();
     notifyListeners();
   }
 
   void voteToStartEarly(String poolId, String email) {
-    final index = _allPools.indexWhere((p) => p.id == poolId);
-    if (index == -1) return;
-    
-    final pool = _allPools[index];
-    final updatedVotes = List<String>.from(pool.readyToStartEmails);
-    if (!updatedVotes.contains(email)) {
-      updatedVotes.add(email);
-    }
-
-    bool allAgreed = updatedVotes.length == pool.studentEmails.length && pool.studentEmails.length > 1;
-
-    _allPools[index] = CarpoolPool(
-      id: pool.id,
-      originLocality: pool.originLocality,
-      destination: pool.destination,
-      lectureTime: pool.lectureTime,
-      studentEmails: pool.studentEmails,
-      studentAddresses: pool.studentAddresses,
-      readyToStartEmails: updatedVotes,
-      leadStudentEmail: pool.leadStudentEmail,
-      region: pool.region,
-      status: allAgreed ? PoolStatus.collectingAddresses : pool.status,
-      fetchedPrice: pool.fetchedPrice,
-    );
-
-    if (allAgreed) {
-      _triggerNotification("Start Early Agreed!", "Everyone is ready. Enter your house addresses.");
-    } else {
-      _triggerNotification("Vouch Received", "Someone wants to start the ride early.");
-    }
-
+    final i = _allPools.indexWhere((p) => p.id == poolId);
+    if (i == -1) return;
+    final p = _allPools[i];
+    final votes = List<String>.from(p.readyToStartEmails);
+    if (!votes.contains(email)) votes.add(email);
+    bool start = votes.length == p.studentEmails.length && p.studentEmails.length > 1;
+    _allPools[i] = p.copyWith(readyToStartEmails: votes, status: start ? PoolStatus.collectingAddresses : p.status);
+    _firestore.syncPool(_allPools[i]);
     _saveToHive();
     notifyListeners();
   }
 
-  void submitAddress(String poolId, String email, String address) {
-    final index = _allPools.indexWhere((p) => p.id == poolId);
-    if (index == -1) return;
+  void submitAddress(String poolId, String email, String addr) {
+    final i = _allPools.indexWhere((p) => p.id == poolId);
+    if (i == -1) return;
+    final adds = Map<String, String>.from(_allPools[i].studentAddresses)..[email] = addr;
+    _allPools[i] = _allPools[i].copyWith(studentAddresses: adds);
+    if (_allPools[i].allAddressesCollected) _allPools[i] = _allPools[i].copyWith(status: PoolStatus.awaitingPayment);
+    _firestore.syncPool(_allPools[i]);
+    _saveToHive();
+    notifyListeners();
+  }
 
-    final updatedAddresses = Map<String, String>.from(_allPools[index].studentAddresses);
-    updatedAddresses[email] = address;
-
-    _allPools[index] = CarpoolPool(
-      id: _allPools[index].id,
-      originLocality: _allPools[index].originLocality,
-      destination: _allPools[index].destination,
-      lectureTime: _allPools[index].lectureTime,
-      studentEmails: _allPools[index].studentEmails,
-      studentAddresses: updatedAddresses,
-      readyToStartEmails: _allPools[index].readyToStartEmails,
-      leadStudentEmail: _allPools[index].leadStudentEmail,
-      region: _allPools[index].region,
-      status: updatedAddresses.length == _allPools[index].studentEmails.length 
-          ? PoolStatus.awaitingPayment 
-          : PoolStatus.collectingAddresses,
-      fetchedPrice: _allPools[index].fetchedPrice,
-    );
-
-    if (_allPools[index].status == PoolStatus.awaitingPayment) {
-      _triggerNotification("Ready for Payment", "All addresses collected! Lead student is fetching the quote.");
+  void processPayment(String poolId, String email) {
+    final i = _allPools.indexWhere((p) => p.id == poolId);
+    if (i == -1) return;
+    final paid = List<String>.from(_allPools[i].paidStudentEmails)..add(email);
+    _allPools[i] = _allPools[i].copyWith(paidStudentEmails: paid);
+    if (_allPools[i].isFullyFunded) {
+      _allPools[i] = _allPools[i].copyWith(status: PoolStatus.booked, driverName: "Joseph (Bolt)", licensePlate: "ABC-123");
+      _notify("Ride Booked!", "The car is on its way.");
     }
-    
+    _firestore.syncPool(_allPools[i]);
     _saveToHive();
     notifyListeners();
   }
 
-  Future<void> fetchFinalBoltPrice(String poolId) async {
-    final index = _allPools.indexWhere((p) => p.id == poolId);
-    if (index == -1) return;
-
-    await Future.delayed(const Duration(seconds: 2));
-
-    double basePrice = 10.00;
-    double pricePerStop = 1.50;
-    double finalPrice = basePrice + (_allPools[index].studentAddresses.length * pricePerStop);
-
-    final p = _allPools[index];
-    _allPools[index] = CarpoolPool(
-      id: p.id,
-      originLocality: p.originLocality,
-      destination: p.destination,
-      lectureTime: p.lectureTime,
-      studentEmails: p.studentEmails,
-      studentAddresses: p.studentAddresses,
-      readyToStartEmails: p.readyToStartEmails,
-      leadStudentEmail: p.leadStudentEmail,
-      region: p.region,
-      status: PoolStatus.awaitingPayment,
-      fetchedPrice: finalPrice,
-    );
-
-    _triggerNotification("Quote Received", "The Bolt price has been verified. You can now pay your share.");
-
-    _saveToHive();
-    notifyListeners();
-  }
-
-  // --- PRIVATE HELPERS ---
-  
-  void _updatePoolStatus(String id, PoolStatus newStatus) {
+  void _updateStatus(String id, PoolStatus s) {
     final i = _allPools.indexWhere((p) => p.id == id);
     if (i != -1) {
-      final p = _allPools[i];
-      _allPools[i] = CarpoolPool(
-        id: p.id, originLocality: p.originLocality, destination: p.destination,
-        lectureTime: p.lectureTime, studentEmails: p.studentEmails,
-        studentAddresses: p.studentAddresses, readyToStartEmails: p.readyToStartEmails,
-        leadStudentEmail: p.leadStudentEmail, region: p.region,
-        status: newStatus, fetchedPrice: p.fetchedPrice,
-      );
+      _allPools[i] = _allPools[i].copyWith(status: s);
     }
   }
 }

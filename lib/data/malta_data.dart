@@ -1,3 +1,4 @@
+// malta_data.dart
 import 'route_logic.dart';
 
 const List<Locality> maltaLocalities = [

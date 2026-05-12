@@ -1,10 +1,11 @@
+// home_screen.dart
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import '../providers/ride_provider.dart';
 import '../providers/user_provider.dart';
 import '../models/carpool_pool.dart';
-import '../data/route_logic.dart'; // Needed for .name extension
+import '../data/route_logic.dart';
 import 'find_pool_screen.dart';
 import 'pool_detail_screen.dart';
 

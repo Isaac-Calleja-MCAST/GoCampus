@@ -1,3 +1,4 @@
+// models/carpool_pool.dart
 import '../data/route_logic.dart';
 
 enum Region { malta, gozo }
@@ -55,8 +56,16 @@ class CarpoolPool {
   bool get allAddressesCollected => studentEmails.isNotEmpty && studentEmails.every((email) => studentAddresses.containsKey(email));
   bool get isFullyFunded => studentEmails.isNotEmpty && paidStudentEmails.length == studentEmails.length;
   double get fundingProgress => studentEmails.isEmpty ? 0 : paidStudentEmails.length / studentEmails.length;
-  double get pricePerStudent => ((fetchedPrice ?? 12.00) / studentEmails.length) + platformFee;
-  double get savings => (fetchedPrice ?? 12.00) - pricePerStudent;
+
+  // 1. The total cost of the car including all student fees 
+  // (This is what the 'Lead Student' sees in the Bolt App + our small margins)
+  double get totalRideCost => (fetchedPrice ?? 12.00) + (studentEmails.length * platformFee);
+
+  // 2. What the individual student actually pays
+  double get pricePerStudent => totalRideCost / studentEmails.length;
+
+  // 3. The 'Aha!' moment: How much they saved compared to booking a whole Bolt alone
+  double get savings => totalRideCost - pricePerStudent;
 
   Map<String, dynamic> toMap() {
     return {

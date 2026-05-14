@@ -46,8 +46,15 @@ class HomeScreen extends StatelessWidget {
           // B. THE DYNAMIC CONTENT AREA
           Expanded(
             child: activePool != null
-                ? _buildActiveRideDashboard(context, activePool) // USER IS IN A RIDE
-                : _buildDiscoveryFeed(context, rideProvider, userProvider), // USER IS SEARCHING
+                ? _buildActiveRideDashboard(
+                    context,
+                    activePool,
+                  ) // USER IS IN A RIDE
+                : _buildDiscoveryFeed(
+                    context,
+                    rideProvider,
+                    userProvider,
+                  ), // USER IS SEARCHING
           ),
         ],
       ),
@@ -58,7 +65,10 @@ class HomeScreen extends StatelessWidget {
               onPressed: () => Navigator.of(context).push(
                 MaterialPageRoute(builder: (context) => const FindPoolScreen()),
               ),
-              label: const Text("Find Pool", style: TextStyle(color: Colors.white)),
+              label: const Text(
+                "Find Pool",
+                style: TextStyle(color: Colors.white),
+              ),
               icon: const Icon(Icons.search, color: Colors.white),
               backgroundColor: indigoBlue,
             )
@@ -73,8 +83,16 @@ class HomeScreen extends StatelessWidget {
       padding: const EdgeInsets.all(16.0),
       child: SegmentedButton<Region>(
         segments: const [
-          ButtonSegment(value: Region.malta, label: Text('Malta'), icon: Text("🇲🇹")),
-          ButtonSegment(value: Region.gozo, label: Text('Gozo'), icon: Text("⛴️")),
+          ButtonSegment(
+            value: Region.malta,
+            label: Text('Malta'),
+            icon: Text("🇲🇹"),
+          ),
+          ButtonSegment(
+            value: Region.gozo,
+            label: Text('Gozo'),
+            icon: Text("⛴️"),
+          ),
         ],
         selected: {userProvider.selectedRegion},
         onSelectionChanged: (Set<Region> newSelection) {
@@ -104,19 +122,28 @@ class HomeScreen extends StatelessWidget {
           const SizedBox(height: 30),
           Card(
             elevation: 4,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
             child: ListTile(
               contentPadding: const EdgeInsets.all(20),
               title: Text(
                 "${pool.originLocality.name} to ${pool.destination.name}",
-                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 18,
+                ),
               ),
-              subtitle: Text("Current Status: ${pool.status.name.toUpperCase()}"),
+              subtitle: Text(
+                "Current Status: ${pool.status.name.toUpperCase()}",
+              ),
               trailing: const Icon(Icons.arrow_forward_ios, color: indigoBlue),
-              onTap: () {  
+              onTap: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => PoolDetailScreen(pool: pool)),
+                  MaterialPageRoute(
+                    builder: (context) => PoolDetailScreen(pool: pool),
+                  ),
                 );
               },
             ),
@@ -132,7 +159,11 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildDiscoveryFeed(BuildContext context, RideProvider rideProvider, UserProvider userProvider) {
+  Widget _buildDiscoveryFeed(
+    BuildContext context,
+    RideProvider rideProvider,
+    UserProvider userProvider,
+  ) {
     // Only show pools that match the student's selected region
     final filteredPools = rideProvider.allPools
         .where((p) => p.region == userProvider.selectedRegion)
@@ -167,35 +198,44 @@ class HomeScreen extends StatelessWidget {
           child: ListTile(
             onTap: () {
               Navigator.of(context).push(
-                MaterialPageRoute(builder: (context) => PoolDetailScreen(pool: pool)),
+                MaterialPageRoute(
+                  builder: (context) => PoolDetailScreen(pool: pool),
+                ),
               );
             },
             leading: CircleAvatar(
               backgroundColor: indigoBlue.withValues(alpha: 0.1),
               child: const Icon(Icons.group, color: indigoBlue),
             ),
-            title: Text("${pool.originLocality.name} ➔ ${pool.destination.name}"),
+            title: Text(
+              "${pool.originLocality.name} ➔ ${pool.destination.name}",
+            ),
             subtitle: Text(
               "Lecture: ${DateFormat('E, MMM d – h:mm a').format(pool.lectureTime)}",
               style: const TextStyle(fontSize: 12),
             ),
             trailing: Column(
               mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.end,
               children: [
-                Text(
-                  "€${pool.pricePerStudent.toStringAsFixed(2)}",
-                  style: const TextStyle(color: islandGreen, fontWeight: FontWeight.bold),
+                // Replace price with passenger count
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.person, size: 16, color: indigoBlue),
+                    const SizedBox(width: 4),
+                    Text(
+                      "${pool.studentEmails.length}/4",
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
+                    ),
+                  ],
                 ),
-                Container(
-                  padding: const EdgeInsets.all(2),
-                  decoration: BoxDecoration(
-                    color: islandGreen.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                  child: Text(
-                    "Save €${pool.savings.toStringAsFixed(2)}",
-                    style: const TextStyle(fontSize: 9, color: islandGreen),
-                  ),
+                const Text(
+                  "JOINED",
+                  style: TextStyle(fontSize: 10, color: Colors.grey),
                 ),
               ],
             ),

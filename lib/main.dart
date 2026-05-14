@@ -1,6 +1,7 @@
 // main.dart
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:firebase_core/firebase_core.dart'; // 1. Ensure this is imported
@@ -18,8 +19,6 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   // 2. INITIALIZE FIREBASE 
-  // If you are using Firestore, this line MUST NOT be commented out.
-  // If it's commented out, the RideProvider will crash the app silently.
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   
   // Initialize Hive
@@ -96,18 +95,22 @@ class _AuthGateState extends State<AuthGate> {
       builder: (context, snapshot) {
         // While waiting for Hive/Session to load, show a nice loading screen
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Scaffold(
-            body: Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  CircularProgressIndicator(),
-                  SizedBox(height: 10),
-                  Text("Waking up GoCampus..."),
-                ],
-              ),
-            ),
-          );
+         return Scaffold(
+  body: Center(
+    child: Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        SvgPicture.asset(
+  'assets/images/logosplash.svg',
+  height: 120,
+  fit: BoxFit.contain,
+), // Smaller version for splash
+        const SizedBox(height: 20),
+        const CircularProgressIndicator(color: Color(0xFF3F51B5)),
+      ],
+    ),
+  ),
+);
         }
 
         // Once loaded, check login status

@@ -17,11 +17,12 @@ dependencies:
   intl: ^0.20.2           # For formatting time/dates
   url_launcher: ^6.3.2    # Open Ride-Hailing App
   firebase_auth: ^6.4.0   # Database
-  firebase_core: ^4.7.0
-  firebase_messaging: ^16.2.0
-  cloud_firestore: ^6.3.0 
+  firebase_core: ^4.7.0  # Firebase initialization
+  firebase_messaging: ^16.2.0  # For push notifications
+  cloud_firestore: ^6.3.0  # For storing user data
   google_sign_in: ^7.2.0  # Google Sign-In
   geocoding: ^4.0.0       # Addresses
+  flutter_svg: ^ 2.3.0     # For SVG icons
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -29,3 +30,6 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+
+  assets:
+    - assets/images/logo.svg

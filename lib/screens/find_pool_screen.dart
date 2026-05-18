@@ -139,16 +139,30 @@ class _FindPoolScreenState extends State<FindPoolScreen> {
   }
 
   void _handleSearch() {
-    final userProvider = Provider.of<UserProvider>(context, listen: false);
-    final rideProvider = Provider.of<RideProvider>(context, listen: false);
-    
-    // Combine Date & Time
+    // 1. Combine Date and Time
     final targetTime = DateTime(
-      _selectedDate.year, _selectedDate.month, _selectedDate.day,
-      _selectedTime.hour, _selectedTime.minute,
+      _selectedDate.year,
+      _selectedDate.month,
+      _selectedDate.day,
+      _selectedTime.hour,
+      _selectedTime.minute,
     );
 
-    // Convert UI string to Enum
+    // 2. Principle #22: Validation Gate
+    if (targetTime.isBefore(DateTime.now())) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Error: Departure cannot be in the past."),
+          backgroundColor: Colors.red,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return; // Stop the search
+    }
+
+    // 3. Continue with normal search logic
+    final userProvider = Provider.of<UserProvider>(context, listen: false);
+    final rideProvider = Provider.of<RideProvider>(context, listen: false);
     final destinationEnum = campusMap[_selectedDestination!]!;
 
     rideProvider.joinOrCreatePool(

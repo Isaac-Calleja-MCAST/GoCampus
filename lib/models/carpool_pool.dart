@@ -55,6 +55,12 @@ class CarpoolPool {
   bool get isFull => studentEmails.length >= 4;
   bool get allAddressesCollected => studentEmails.isNotEmpty && studentEmails.every((email) => studentAddresses.containsKey(email));
   bool get isFullyFunded => studentEmails.isNotEmpty && paidStudentEmails.length == studentEmails.length;
+  // LOGIC: Is the ride over? (2 hour grace period after lecture starts)
+  bool get isExpired {
+    final now = DateTime.now();
+    // Returns true if right now is 2 hours past the scheduled lecture time
+    return now.isAfter(lectureTime.add(const Duration(hours: 2)));
+  }
   double get fundingProgress => studentEmails.isEmpty ? 0 : paidStudentEmails.length / studentEmails.length;
 
   // 1. The total cost of the car including all student fees 

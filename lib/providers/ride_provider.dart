@@ -13,9 +13,25 @@ class RideProvider with ChangeNotifier {
   List<CarpoolPool> get allPools => [..._allPools];
 
   void startRealtimeSync() {
-    _firestore.getPoolsStream().listen((updated) {
+    _firestore.getPoolsStream().listen((updatedPools) {
+      // 1. Create a list for the UI
+      List<CarpoolPool> validPools = [];
+
+      for (var pool in updatedPools) {
+        if (pool.isExpired) {
+          // 2. AUTO-DELETE: Tell Firestore to remove this old data
+          _firestore.deletePool(pool.id);
+          debugPrint("CLEANUP: Deleted expired pool ${pool.id}");
+        } else {
+          // 3. KEEP: It's still a valid upcoming ride
+          validPools.add(pool);
+        }
+      }
+
       _allPools.clear();
-      _allPools.addAll(updated);
+      _allPools.addAll(validPools);
+      
+      _saveToHive(); 
       notifyListeners();
     });
   }
@@ -124,18 +140,29 @@ class RideProvider with ChangeNotifier {
   void leavePool(String poolId, String email) {
     final i = _allPools.indexWhere((p) => p.id == poolId);
     if (i == -1) return;
+    
     final pool = _allPools[i];
-    pool.studentEmails.remove(email);
-    if (pool.studentEmails.isEmpty) {
-      _firestore.deletePool(poolId);
+    
+    // Principle #26: Create a new list (Immutability)
+    final updatedEmails = List<String>.from(pool.studentEmails)..remove(email);
+
+    if (updatedEmails.isEmpty) {
+      // DELETE CASE: Remove from local list AND cloud
       _allPools.removeAt(i);
+      _firestore.deletePool(poolId);
     } else {
-      String lead = pool.leadStudentEmail == email ? pool.studentEmails.first : pool.leadStudentEmail;
-      _allPools[i] = pool.copyWith(leadStudentEmail: lead, status: PoolStatus.recruiting);
+      // UPDATE CASE: Shift lead and reset status
+      String lead = pool.leadStudentEmail == email ? updatedEmails.first : pool.leadStudentEmail;
+      _allPools[i] = pool.copyWith(
+        studentEmails: updatedEmails, 
+        leadStudentEmail: lead, 
+        status: PoolStatus.recruiting
+      );
       _firestore.syncPool(_allPools[i]);
     }
+    
     _saveToHive();
-    notifyListeners();
+    notifyListeners(); // Triggers the AuthGate/Consumer to react
   }
 
   void voteToStartEarly(String poolId, String email) {

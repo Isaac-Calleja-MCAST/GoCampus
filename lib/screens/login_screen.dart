@@ -38,9 +38,11 @@ class _LoginScreenState extends State<LoginScreen> {
   fit: BoxFit.contain,
 ),
               const SizedBox(height: 10),
-              Text("GoCampus", 
-                style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: indigoBlue)),
-              const Text("Share the ride. Save more."),
+              Text("", // Placeholder for tagline, can be updated later
+                style: TextStyle(fontSize: 5, fontWeight: FontWeight.bold, color: indigoBlue)),
+              const SizedBox(height: 10),
+              Text("Share the ride. Save more.", 
+                style: TextStyle(fontSize: 20),),
               const SizedBox(height: 50),
 
               _loginButton(
@@ -59,17 +61,24 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
               
               const Divider(height: 60),
-              const Text("DEBUG ACCESS", style: TextStyle(color: Colors.orange, fontWeight: FontWeight.bold)),
-              const SizedBox(height: 10),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              const Text("DEBUG ACCESS", 
+                style: TextStyle(color: Colors.orange, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 15),
+
+              // Using Wrap instead of Row to prevent buttons from cutting off
+              Wrap(
+                spacing: 10, // horizontal gap
+                runSpacing: 10, // vertical gap
+                alignment: WrapAlignment.center,
                 children: [
-                  ElevatedButton(
-                    onPressed: () => _handleSmartLogin(context, "isaac@mcast.edu.mt"),
-                    child: const Text("Isaac (MCAST)"),
-                  ),
+                  _debugButton(context, "Isaac", "isaac@mcast.edu.mt"),
+                  _debugButton(context, "Kayel", "kayel@mcast.edu.mt"),
+                  _debugButton(context, "Kyra", "kyra@mcast.edu.mt"),
+                  _debugButton(context, "Andrene", "andrene@mcast.edu.mt"),
+                  _debugButton(context, "Nathan", "nathan@mcast.edu.mt"),
+                  _debugButton(context, "Gabriel", "gabriel@mcast.edu.mt"),
                 ],
-              )
+              ),
             ],
           ),
         ),
@@ -89,6 +98,18 @@ class _LoginScreenState extends State<LoginScreen> {
       ),
     );
   }
+
+  Widget _debugButton(BuildContext context, String name, String email) {
+  return ElevatedButton(
+    onPressed: () => _handleSmartLogin(context, email),
+    style: ElevatedButton.styleFrom(
+      backgroundColor: Colors.orange[50],
+      foregroundColor: Colors.orange[900],
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+    ),
+    child: Text(name),
+  );
+}
 
   void _handleSmartLogin(BuildContext context, String email) async {
   final userProvider = Provider.of<UserProvider>(context, listen: false);

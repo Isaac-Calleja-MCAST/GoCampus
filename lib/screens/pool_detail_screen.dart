@@ -44,15 +44,18 @@ class _PoolDetailScreenState extends State<PoolDetailScreen> {
       builder: (context, provider, _) {
         CarpoolPool pool;
         try {
+          // Principle #22: Fail fast if the pool is gone or user is no longer a member
           pool = provider.allPools.firstWhere((p) => p.id == widget.pool.id);
           if (!pool.studentEmails.contains(userEmail)) throw Exception();
         } catch (e) {
+          // THE NAVIGATION FIX:
           WidgetsBinding.instance.addPostFrameCallback((_) {
-            if (mounted) Navigator.pop(context);
+            if (mounted && Navigator.of(context).canPop()) {
+              // Pop until we reach the Dashboard (isFirst) to avoid black screens
+              Navigator.of(context).popUntil((route) => route.isFirst);
+            }
           });
-          return const Scaffold(
-            body: Center(child: CircularProgressIndicator()),
-          );
+          return const Scaffold(body: Center(child: CircularProgressIndicator()));
         }
 
         final isLead = pool.leadStudentEmail == userEmail;

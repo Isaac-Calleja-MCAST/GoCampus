@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import '../models/carpool_pool.dart';
+import '../models/trip_category.dart';
 import '../data/route_logic.dart';
 import '../services/firestore_service.dart';
 import '../main.dart';
@@ -75,10 +76,12 @@ class RideProvider with ChangeNotifier {
 
   void joinOrCreatePool({
     required String email,
+    required String displayName,
     required Locality origin,
     required Locality destination,
     required DateTime time,
     required Region region,
+    required TripCategory tripCategory,
   }) {
     try {
       final existingPool = _allPools.firstWhere((p) {
@@ -89,19 +92,30 @@ class RideProvider with ChangeNotifier {
           userDestination: destination,
           poolDestination: p.destination,
           userDepartureTime: time,
-          poolDepartureTime: p.lectureTime,
-        ) && !p.isFull && p.status == PoolStatus.recruiting;
+          poolDepartureTime: p.departureTime,
+        ) &&
+            p.tripCategory == tripCategory &&
+            !p.isFull &&
+            p.status == PoolStatus.recruiting;
       });
 
       if (!existingPool.studentEmails.contains(email)) {
-        existingPool.studentEmails.add(email);
+        final poolIndex = _allPools.indexWhere((pool) => pool.id == existingPool.id);
+        final updatedEmails = List<String>.from(existingPool.studentEmails)..add(email);
+        final updatedNames = Map<String, String>.from(existingPool.studentNames)
+          ..[email] = displayName;
+        final updatedPool = existingPool.copyWith(
+          studentEmails: updatedEmails,
+          studentNames: updatedNames,
+        );
+        _allPools[poolIndex] = updatedPool;
         _notify("Passenger Joined!", "Someone joined your carpool to ${destination.name}");
         
         // FIX: Using the helper method to resolve the warning
-        if (existingPool.isFull) {
-          _updateStatus(existingPool.id, PoolStatus.collectingAddresses);
+        if (updatedPool.isFull) {
+          _updateStatus(updatedPool.id, PoolStatus.collectingAddresses);
         }
-        _firestore.syncPool(existingPool);
+        _firestore.syncPool(_allPools[poolIndex]);
       }
     } catch (e) {
       final newPool = CarpoolPool(
@@ -110,8 +124,10 @@ class RideProvider with ChangeNotifier {
         destination: destination,
         lectureTime: time,
         studentEmails: [email],
+        studentNames: {email: displayName},
         leadStudentEmail: email,
         region: region,
+        tripCategory: tripCategory,
         status: PoolStatus.recruiting,
       );
       _allPools.add(newPool);
@@ -121,11 +137,17 @@ class RideProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  void manualJoin(String poolId, String email) {
+  void manualJoin(String poolId, String email, String displayName) {
     final index = _allPools.indexWhere((p) => p.id == poolId);
     if (index != -1 && !_allPools[index].isFull) {
       if (!_allPools[index].studentEmails.contains(email)) {
-        _allPools[index].studentEmails.add(email);
+        final updatedEmails = List<String>.from(_allPools[index].studentEmails)..add(email);
+        final updatedNames = Map<String, String>.from(_allPools[index].studentNames)
+          ..[email] = displayName;
+        _allPools[index] = _allPools[index].copyWith(
+          studentEmails: updatedEmails,
+          studentNames: updatedNames,
+        );
         if (_allPools[index].studentEmails.length == 4) {
           _updateStatus(poolId, PoolStatus.collectingAddresses);
         }
@@ -141,10 +163,11 @@ class RideProvider with ChangeNotifier {
     final i = _allPools.indexWhere((p) => p.id == poolId);
     if (i == -1) return;
     
-    final pool = _allPools[i];
+      final pool = _allPools[i];
     
     // Principle #26: Create a new list (Immutability)
-    final updatedEmails = List<String>.from(pool.studentEmails)..remove(email);
+      final updatedEmails = List<String>.from(pool.studentEmails)..remove(email);
+      final updatedNames = Map<String, String>.from(pool.studentNames)..remove(email);
 
     if (updatedEmails.isEmpty) {
       // DELETE CASE: Remove from local list AND cloud
@@ -155,6 +178,7 @@ class RideProvider with ChangeNotifier {
       String lead = pool.leadStudentEmail == email ? updatedEmails.first : pool.leadStudentEmail;
       _allPools[i] = pool.copyWith(
         studentEmails: updatedEmails, 
+        studentNames: updatedNames,
         leadStudentEmail: lead, 
         status: PoolStatus.recruiting
       );

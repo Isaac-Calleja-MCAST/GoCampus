@@ -1,6 +1,7 @@
 // firestore_service.dart
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/carpool_pool.dart';
+import '../models/student_profile.dart';
 
 class FirestoreService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
@@ -24,5 +25,15 @@ class FirestoreService {
   // 3. Delete a pool (when it becomes empty)
   Future<void> deletePool(String poolId) async {
     await _db.collection('pools').doc(poolId).delete();
+  }
+
+  Stream<List<StudentProfile>> getProfilesStream() {
+    return _db.collection('studentProfiles').snapshots().map((snapshot) {
+      return snapshot.docs.map((doc) => StudentProfile.fromMap(doc.data())).toList();
+    });
+  }
+
+  Future<void> syncProfile(StudentProfile profile) async {
+    await _db.collection('studentProfiles').doc(profile.email).set(profile.toMap());
   }
 }

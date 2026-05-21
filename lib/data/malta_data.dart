@@ -1,5 +1,23 @@
-// malta_data.dart
 import 'route_logic.dart';
+import '../models/trip_category.dart';
+
+/// Broad destination types used by the seasonal planner and home feed.
+enum StudentDestinationType { campus, beach, nightlife, city, event }
+
+/// A destination that can be offered as a pooled ride target.
+class StudentDestination {
+  const StudentDestination({
+    required this.name,
+    required this.locality,
+    required this.type,
+    required this.category,
+  });
+
+  final String name;
+  final Locality locality;
+  final StudentDestinationType type;
+  final TripCategory category;
+}
 
 const List<Locality> maltaLocalities = [
   Locality.attard, Locality.balzan, Locality.birgu, Locality.birkirkara, Locality.birzebbuga,
@@ -21,22 +39,217 @@ const List<Locality> gozoLocalities = [
   Locality.victoria, Locality.xaghra, Locality.xewkija, Locality.zebbugGozo
 ];
 
-const Map<String, Locality> campusMap = {
-  "MCAST Paola": Locality.paola,
-  "MCAST Mosta": Locality.mosta,
-  "MCAST Luqa": Locality.luqa,
-  "MCAST Gozo": Locality.xewkija,
-  "University of Malta (Msida)": Locality.msida,
-  "University of Malta (Marsaxlokk)": Locality.marsaxlokk,
-  "University of Malta (Gozo)": Locality.xewkija,
-  "Junior College (Msida)": Locality.msida,
+const List<StudentDestination> studentDestinations = [
+  StudentDestination(
+    name: 'MCAST Paola',
+    locality: Locality.paola,
+    type: StudentDestinationType.campus,
+    category: TripCategory.campusCommute,
+  ),
+  StudentDestination(
+    name: 'MCAST Mosta',
+    locality: Locality.mosta,
+    type: StudentDestinationType.campus,
+    category: TripCategory.campusCommute,
+  ),
+  StudentDestination(
+    name: 'MCAST Luqa',
+    locality: Locality.luqa,
+    type: StudentDestinationType.campus,
+    category: TripCategory.campusCommute,
+  ),
+  StudentDestination(
+    name: 'MCAST Gozo',
+    locality: Locality.xewkija,
+    type: StudentDestinationType.campus,
+    category: TripCategory.campusCommute,
+  ),
+  StudentDestination(
+    name: 'University of Malta (Msida)',
+    locality: Locality.msida,
+    type: StudentDestinationType.campus,
+    category: TripCategory.campusCommute,
+  ),
+  StudentDestination(
+    name: 'University of Malta (Marsaxlokk)',
+    locality: Locality.marsaxlokk,
+    type: StudentDestinationType.campus,
+    category: TripCategory.campusCommute,
+  ),
+  StudentDestination(
+    name: 'University of Malta (Gozo)',
+    locality: Locality.xewkija,
+    type: StudentDestinationType.campus,
+    category: TripCategory.campusCommute,
+  ),
+  StudentDestination(
+    name: 'Junior College (Msida)',
+    locality: Locality.msida,
+    type: StudentDestinationType.campus,
+    category: TripCategory.campusCommute,
+  ),
+  StudentDestination(
+    name: 'ITS Malta Campus',
+    locality: Locality.luqa,
+    type: StudentDestinationType.campus,
+    category: TripCategory.campusCommute,
+  ),
+  StudentDestination(
+    name: 'ITS Gozo Campus',
+    locality: Locality.qala,
+    type: StudentDestinationType.campus,
+    category: TripCategory.campusCommute,
+  ),
+  StudentDestination(
+    name: 'University of Malta (Valletta)',
+    locality: Locality.valletta,
+    type: StudentDestinationType.campus,
+    category: TripCategory.campusCommute,
+  ),
+  StudentDestination(
+    name: 'Ghadira Bay',
+    locality: Locality.mellieha,
+    type: StudentDestinationType.beach,
+    category: TripCategory.daytimeBeachDeparture,
+  ),
+  StudentDestination(
+    name: 'Golden Bay',
+    locality: Locality.mgarr,
+    type: StudentDestinationType.beach,
+    category: TripCategory.daytimeBeachDeparture,
+  ),
+  StudentDestination(
+    name: 'Paradise Bay',
+    locality: Locality.mellieha,
+    type: StudentDestinationType.beach,
+    category: TripCategory.daytimeBeachDeparture,
+  ),
+  StudentDestination(
+    name: 'Gnejna Bay',
+    locality: Locality.mgarr,
+    type: StudentDestinationType.beach,
+    category: TripCategory.daytimeBeachDeparture,
+  ),
+  StudentDestination(
+    name: "St George's Bay",
+    locality: Locality.sanGiljan,
+    type: StudentDestinationType.beach,
+    category: TripCategory.daytimeBeachDeparture,
+  ),
+  StudentDestination(
+    name: 'Pretty Bay',
+    locality: Locality.birzebbuga,
+    type: StudentDestinationType.beach,
+    category: TripCategory.daytimeBeachDeparture,
+  ),
+  StudentDestination(
+    name: "St Peter's Pool",
+    locality: Locality.marsaxlokk,
+    type: StudentDestinationType.beach,
+    category: TripCategory.daytimeBeachDeparture,
+  ),
+  StudentDestination(
+    name: 'Ramla Bay',
+    locality: Locality.xaghra,
+    type: StudentDestinationType.beach,
+    category: TripCategory.daytimeBeachDeparture,
+  ),
+  StudentDestination(
+    name: 'Gianpula',
+    locality: Locality.rabat,
+    type: StudentDestinationType.nightlife,
+    category: TripCategory.nighttimePartyDeparture,
+  ),
+  StudentDestination(
+    name: 'Uno',
+    locality: Locality.taXbiex,
+    type: StudentDestinationType.nightlife,
+    category: TripCategory.nighttimePartyDeparture,
+  ),
+  StudentDestination(
+    name: 'Cafe del Mar',
+    locality: Locality.stPaulsBay,
+    type: StudentDestinationType.nightlife,
+    category: TripCategory.nighttimePartyDeparture,
+  ),
+  StudentDestination(
+    name: 'Paceville Night Out',
+    locality: Locality.sanGiljan,
+    type: StudentDestinationType.nightlife,
+    category: TripCategory.nighttimePartyDeparture,
+  ),
+  StudentDestination(
+    name: 'MedAsia Playa',
+    locality: Locality.sliema,
+    type: StudentDestinationType.nightlife,
+    category: TripCategory.nighttimePartyDeparture,
+  ),
+  StudentDestination(
+    name: 'Valletta',
+    locality: Locality.valletta,
+    type: StudentDestinationType.city,
+    category: TripCategory.nighttimePartyDeparture,
+  ),
+  StudentDestination(
+    name: 'Isle of MTV (Floriana)',
+    locality: Locality.floriana,
+    type: StudentDestinationType.event,
+    category: TripCategory.nighttimePartyDeparture,
+  ),
+  StudentDestination(
+    name: 'Malta Jazz Festival (Valletta)',
+    locality: Locality.valletta,
+    type: StudentDestinationType.event,
+    category: TripCategory.nighttimePartyDeparture,
+  ),
+];
+
+final Map<String, Locality> campusMap = {
+  for (final destination in campusStudentDestinations)
+    destination.name: destination.locality,
 };
 
-final List<String> campusDestinations = campusMap.keys.toList();
+final List<StudentDestination> campusStudentDestinations = studentDestinations
+    .where((destination) => destination.type == StudentDestinationType.campus)
+    .toList(growable: false);
+
+final List<StudentDestination> summerStudentDestinations = studentDestinations
+    .where((destination) => destination.type != StudentDestinationType.campus)
+    .toList(growable: false);
+
+final List<String> campusDestinations =
+    campusStudentDestinations.map((destination) => destination.name).toList();
+
+List<StudentDestination> destinationsForCategory(TripCategory category) {
+  return studentDestinations
+      .where((destination) => destination.category == category)
+      .toList(growable: false);
+}
+
+StudentDestination? findStudentDestination(String name) {
+  for (final destination in studentDestinations) {
+    if (destination.name == name) return destination;
+  }
+  return null;
+}
 
 String getCampusDisplayName(Locality locality) {
+  return getStudentDestinationName(locality);
+}
+
+String getStudentDestinationName(
+  Locality locality, {
+  TripCategory? category,
+}) {
   try {
-    return campusMap.entries.firstWhere((e) => e.value == locality).key;
+    return studentDestinations
+        .where(
+          (destination) =>
+              destination.locality == locality &&
+              (category == null || destination.category == category),
+        )
+        .first
+        .name;
   } catch (e) {
     return locality.name;
   }

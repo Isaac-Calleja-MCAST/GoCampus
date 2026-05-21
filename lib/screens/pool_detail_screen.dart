@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../models/carpool_pool.dart';
+import '../models/trip_category.dart';
 import '../providers/ride_provider.dart';
 import '../providers/user_provider.dart';
 import '../data/malta_data.dart';
@@ -22,6 +23,12 @@ class _PoolDetailScreenState extends State<PoolDetailScreen> {
   static const Color indigoBlue = Color(0xFF3F51B5);
   static const Color islandGreen = Color(0xFF2E7D32);
 
+  @override
+  void dispose() {
+    _addrController.dispose();
+    super.dispose();
+  }
+
   Future<void> _payViaRevolut(double amount) async {
     final Uri url = Uri.parse("https://revolut.me/pay/GOCAMPUS?amount=$amount");
     try {
@@ -38,7 +45,8 @@ class _PoolDetailScreenState extends State<PoolDetailScreen> {
 }
   @override
   Widget build(BuildContext context) {
-    final userEmail = Provider.of<UserProvider>(context).userEmail ?? "";
+    final userProvider = Provider.of<UserProvider>(context);
+    final userEmail = userProvider.userEmail ?? "";
 
     return Consumer<RideProvider>(
       builder: (context, provider, _) {
@@ -73,7 +81,7 @@ class _PoolDetailScreenState extends State<PoolDetailScreen> {
               children: [
                 if (isLead) _buildBanner("⭐ You are the Lead Student."),
                 Text(
-                  "Ride to ${getCampusDisplayName(pool.destination)}",
+                  "${pool.tripCategory.label} to ${getStudentDestinationName(pool.destination, category: pool.tripCategory)}",
                   style: const TextStyle(
                     fontSize: 22,
                     fontWeight: FontWeight.bold,
@@ -81,7 +89,7 @@ class _PoolDetailScreenState extends State<PoolDetailScreen> {
                   ),
                 ),
                 Text(
-                  "From ${pool.originLocality.name} at ${DateFormat('h:mm a').format(pool.lectureTime)}",
+                  "From ${pool.originLocality.name} at ${DateFormat('h:mm a').format(pool.departureTime)}",
                 ),
                 const SizedBox(height: 10),
                 Chip(
@@ -97,11 +105,12 @@ class _PoolDetailScreenState extends State<PoolDetailScreen> {
                           : Icons.person_outline,
                       color: islandGreen,
                     ),
-                    title: Text(e),
+                    title: Text(pool.studentNames[e] ?? 'Student'),
+                    subtitle: pool.studentNames.containsKey(e) ? null : Text(e),
                   ),
                 ),
                 const SizedBox(height: 30),
-                _buildActionArea(pool, userEmail, provider),
+                _buildActionArea(pool, userEmail, provider, userProvider),
               ],
             ),
           ),
@@ -129,6 +138,7 @@ class _PoolDetailScreenState extends State<PoolDetailScreen> {
     CarpoolPool pool,
     String email,
     RideProvider provider,
+    UserProvider userProvider,
   ) {
     if (pool.status == PoolStatus.recruiting) {
       return Column(
@@ -176,6 +186,12 @@ class _PoolDetailScreenState extends State<PoolDetailScreen> {
     }
     if (pool.status == PoolStatus.awaitingPayment) {
       bool paid = pool.paidStudentEmails.contains(email);
+      final hasMembership = userProvider.hasMembershipFor(pool.departureTime);
+      final fee = pool.feeFor(hasMonthlyMembership: hasMembership);
+      final totalPayment = pool.pricePerStudentFor(
+        hasMonthlyMembership: hasMembership,
+      );
+      final savings = pool.savingsFor(hasMonthlyMembership: hasMembership);
 
       return Column(
         children: [
@@ -207,19 +223,29 @@ class _PoolDetailScreenState extends State<PoolDetailScreen> {
             child: Column(
               children: [
                 _invoiceRow(
-                  "Total Ride Price",
+                  "Driver Ride Fare",
                   "€${pool.totalRideCost.toStringAsFixed(2)}",
+                ),
+                const SizedBox(height: 8),
+                _invoiceRow(
+                  "Your Fare Share",
+                  "€${pool.fareSharePerStudent.toStringAsFixed(2)}",
+                ),
+                const SizedBox(height: 8),
+                _invoiceRow(
+                  "GoCampus Fee per Student",
+                  hasMembership ? "Fee Covered" : "€${fee.toStringAsFixed(2)}",
                 ),
                 const Divider(height: 30),
                 _invoiceRow(
-                  "Your Shared Payment",
-                  "€${pool.pricePerStudent.toStringAsFixed(2)}",
+                  "Your Total Payment",
+                  "€${totalPayment.toStringAsFixed(2)}",
                   isBold: true,
                 ),
                 const SizedBox(height: 8),
                 _invoiceRow(
                   "Total Saved",
-                  "€${pool.savings.toStringAsFixed(2)}",
+                  "€${savings.toStringAsFixed(2)}",
                   color: islandGreen,
                 ),
               ],
@@ -233,7 +259,7 @@ class _PoolDetailScreenState extends State<PoolDetailScreen> {
               ? _buildSuccessBadge()
               : ElevatedButton.icon(
                   onPressed: () {
-                    _payViaRevolut(pool.pricePerStudent);
+                    _payViaRevolut(totalPayment);
                     provider.processPayment(pool.id, email);
                   },
                   icon: const Icon(Icons.account_balance_wallet),
